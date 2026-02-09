@@ -1,0 +1,9 @@
+This is a list of handy commands
+
+# this command lets you view the transforms between any two frames, 
+# it gives rotation in rpy and quaternions, translation vector and a transformation matrix
+ros2 run tf2_ros tf2_echo <source_frame> <target_frame> 
+
+# this one generates a pdf where the frames can be viewed
+ros2 run tf2_tools view_frames
+

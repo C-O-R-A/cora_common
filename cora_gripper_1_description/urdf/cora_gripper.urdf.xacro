@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="cora_gripper">
+
+  <xacro:macro name="cora_gripper_xacro" params="hardware_type initial_positions_file">
+
+    <!-- Store gripper package path -->
+    <xacro:property
+        name="gripper_package_path"
+        value="$(find cora_gripper_1_description)"/>
+
+    <!-- Include gripper file using absolute path -->
+    <xacro:include filename="${gripper_package_path}/urdf/cora_gripper.urdf" />
+    <xacro:cora_gripper />
+
+    <!-- Include control xacro -->
+    <xacro:include filename="${gripper_package_path}/urdf/cora_gripper.ros2_control.xacro" />
+    <xacro:cora_gripper_ros2_control
+        name="GripperSystem"
+        initial_positions_file="${initial_positions_file}"
+        hardware_type="${hardware_type}"/>
+  </xacro:macro>
+
+</robot>

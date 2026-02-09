@@ -1,0 +1,71 @@
+// onshape to robot config file
+{
+    // Onshape URL of the assembly
+    "url": "https://cad.onshape.com/documents/971c71e558f4d758be7c1282/w/a52d355fced062b7019a3a28/e/242e269d7b3e3af20cba21dc",
+    
+    // Output format
+    "output_format": "urdf",
+    "output_filename": "cora_description/urdf/cora",
+    "assets_directory": "cora_description/meshes/cora",
+
+    // Merge STL meshes (default: false)
+    "merge_stls": true,
+
+    // Add a dummy base link (default: false)
+    "add_dummy_base_link": true,
+
+    "robot_name": "cora",
+    "post_import_commands": [
+        // we could possibly do some postprocessing in here
+        "echo 'Import done'"
+    ],
+
+    // "additional_xml": "./urdf/gripper.urdf.xml",
+
+    // Override joint properties (default: {})
+    "joint_properties": {
+        // Default properties for all joints
+        "J1": {
+            "max_effort": 10.0,
+            "max_velocity": 2,
+            "limits": [-3.14, 3.14],
+            "friction": 0.1
+        },
+
+        "J2": {
+            "max_effort": 10.0,
+            "max_velocity": 2,
+            "limits": [-3.14, 3.14],
+            "friction": 0.1
+        },
+
+        "J3": {
+            "max_effort": 10.0,
+            "max_velocity": 2,
+            "limits": [-3.14, 3.14],
+            "friction": 0.1
+        },
+
+        "J4": {
+            "max_effort": 10.0,
+            "max_velocity": 2,
+            "limits": [-3.14, 3.14],
+            "friction": 0.1
+        },
+
+        "J5": {
+            "max_effort": 10.0,
+            "max_velocity": 2,
+            "limits": [-3.14, 3.14],
+            "friction": 0.1
+        },
+
+        "J6": {
+            "max_effort": 10.0,
+            "max_velocity": 2,
+            "limits": [-3.14, 3.14],
+            "friction": 0.1
+        }
+
+        
+}}

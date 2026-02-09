@@ -1,0 +1,43 @@
+# pose_goal (TargetedPoseStamped)
+#     |
+#     |__ target_frame (string)
+#     |
+#     |__ pose (PoseStamped) 
+#         |
+#         |__ header (Header)
+#         |     |__ seq    (uint32)
+#         |     |__ stamp  (time)
+#         |     |      |__  sec     (int32)
+#         |     |      |__  nanosec (uint32)
+#         |     |      
+#         |     |__ frame_id (string)
+#         |
+#         |__ pose (Pose)
+#               |__ position (Point)
+#               |      |__ x (float64)
+#               |      |__ y (float64)
+#               |      |__ z (float64)
+#               |
+#               |__ orientation (Quaternion)
+#                      |__ x (float64)
+#                      |__ y (float64)
+#                      |__ z (float64)
+#                      |__ w (float64)
+
+# Goal
+cora_msgs/TargetedPoseStamped pose_goal     
+float64[] joint_goal                    # [J1, J2, J3, J4, J5, J6]
+float64 gripper_goal                    # gripper goal pose
+string predefined_pose                  # 'standby' or 'straight', see srdf for more details
+string space                            # 'TS' or 'JS'
+string interface_type                   # 'position' or 'velocity' or 'acceleration' or 'effort'
+---
+# Result
+geometry_msgs/PoseStamped pose_result
+float64[] joint_result
+string status_result
+bool success
+---
+# Feedback
+geometry_msgs/PoseStamped pose_feedback
+string status

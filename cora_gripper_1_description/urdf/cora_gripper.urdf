@@ -1,0 +1,134 @@
+<?xml version="1.0" ?>
+<!-- Generated using onshape-to-robot -->
+<!-- Onshape https://cad.onshape.com/documents/971c71e558f4d758be7c1282/w/a52d355fced062b7019a3a28/e/242e269d7b3e3af20cba21dc -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:macro name="cora_gripper">
+        <!-- Link gripper_body -->
+        <link name="gripper_body">
+            <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <mass value="1e-09"/>
+            <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+            </inertial>
+            <!-- Part gripper_body_parts -->
+            <visual>
+            <origin xyz="-7.4681e-15 -1.17217 -0.059" rpy="-1.5708 -1.5708 0"/>
+            <geometry>
+                <mesh filename="package://cora_gripper_1_description/meshes/merged/gripper_body_visual.stl"/>
+            </geometry>
+            <material name="gripper_body_parts_material">
+                <color rgba="0.4 0.4 0.4 1.0"/>
+            </material>
+            </visual>
+            <collision>
+            <origin xyz="-7.4681e-15 -1.17217 -0.059" rpy="-1.5708 -1.5708 0"/>
+            <geometry>
+                <mesh filename="package://cora_gripper_1_description/meshes/merged/gripper_body_collision.stl"/>
+            </geometry>
+            </collision>
+        </link>
+        <!-- Frame Gripper (dummy link + fixed joint) -->
+        <link name="Gripper">
+            <origin xyz="0 0 0" rpy="0 -0 0"/>
+            <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <mass value="1e-9"/>
+            <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+            </inertial>
+        </link>
+        <joint name="Gripper_frame" type="fixed">
+            <origin xyz="-1.75447e-17 0 -0.112" rpy="-3.14159 1.57702e-16 -1.11972e-30"/>
+            <parent link="gripper_body"/>
+            <child link="Gripper"/>
+            <axis xyz="0 0 0"/>
+        </joint>
+        <!-- Frame Camera (dummy link + fixed joint) -->
+        <link name="Camera">
+            <origin xyz="0 0 0" rpy="0 -0 0"/>
+            <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <mass value="1e-9"/>
+            <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+            </inertial>
+        </link>
+        <joint name="Camera_frame" type="fixed">
+            <origin xyz="0.016614 0.0515 -0.0460957" rpy="-3.14159 3.23996e-14 3.14159"/>
+            <parent link="gripper_body"/>
+            <child link="Camera"/>
+            <axis xyz="0 0 0"/>
+        </joint>
+        <!-- Link gripper_fingers -->
+        <link name="gripper_fingers">
+            <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <mass value="1e-09"/>
+            <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+            </inertial>
+            <!-- Part gripper_fingers_parts -->
+            <visual>
+            <origin xyz="1.17667 0.0095 0.07" rpy="-1.5708 -1.2413e-09 1.5708"/>
+            <geometry>
+                <mesh filename="package://cora_gripper_1_description/meshes/merged/gripper_fingers_visual.stl"/>
+            </geometry>
+            <material name="gripper_fingers_parts_material">
+                <color rgba="0.4 0.4 0.4 1.0"/>
+            </material>
+            </visual>
+            <collision>
+            <origin xyz="1.17667 0.0095 0.07" rpy="-1.5708 -1.2413e-09 1.5708"/>
+            <geometry>
+                <mesh filename="package://cora_gripper_1_description/meshes/merged/gripper_fingers_collision.stl"/>
+            </geometry>
+            </collision>
+        </link>
+        <!-- Joint from gripper_body to gripper_fingers -->
+        <joint name="Finger1" type="prismatic">
+            <origin xyz="0.07 0.0045 -0.0685" rpy="1.5708 -2.55351e-15 -1.5708"/>
+            <parent link="gripper_body"/>
+            <child link="gripper_fingers"/>
+            <axis xyz="0 0 1"/>
+            <limit effort="10" velocity="10" lower="0.0" upper="0.0385"/>
+        </joint>
+        <!-- Link gripper_fingers_2 -->
+        <link name="gripper_fingers_2">
+            <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <mass value="1e-09"/>
+            <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+            </inertial>
+            <!-- Part gripper_fingers_2_parts -->
+            <visual>
+            <origin xyz="-1.16767 0.0095 0.07" rpy="1.5708 1.2413e-09 1.5708"/>
+            <geometry>
+                <mesh filename="package://cora_gripper_1_description/meshes/merged/gripper_fingers_2_visual.stl"/>
+            </geometry>
+            <material name="gripper_fingers_2_parts_material">
+                <color rgba="0.4 0.4 0.4 1.0"/>
+            </material>
+            </visual>
+            <collision>
+            <origin xyz="-1.16767 0.0095 0.07" rpy="1.5708 1.2413e-09 1.5708"/>
+            <geometry>
+                <mesh filename="package://cora_gripper_1_description/meshes/merged/gripper_fingers_2_collision.stl"/>
+            </geometry>
+            </collision>
+        </link>
+        <!-- Joint from gripper_body to gripper_fingers_2 -->
+        <joint name="Finger2" type="prismatic">
+            <origin xyz="-0.07 -0.0045 -0.0685" rpy="1.5708 5.4956e-15 1.5708"/>
+            <parent link="gripper_body"/>
+            <child link="gripper_fingers_2"/>
+            <axis xyz="0 0 1"/>
+            <limit effort="10" velocity="10" lower="0.0" upper="0.0385"/>
+            <mimic joint="Finger1" multiplier="1.0"/>
+        </joint>
+        <!-- Joint from endeffector to gripper_body -->
+        <joint name="GripperFix" type="fixed">
+            <origin xyz="4.44089e-16 3.45864e-19 -0.024" rpy="-6.10623e-15 4.51028e-15 1.5708"/>
+            <parent link="endeffector"/>
+            <child link="gripper_body"/>
+            <axis xyz="0 0 1"/>
+            <limit effort="10" velocity="10"/>
+        </joint>
+    </xacro:macro>
+</robot>

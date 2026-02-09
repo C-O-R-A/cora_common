@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="cora">
+
+    <!-- ================= -->
+    <!-- Declare arguments -->
+    <!-- ================= -->
+    <xacro:arg name="hardware_type" default="Fake"/>
+    <xacro:arg name="gripper_package" default="None"/>
+    <xacro:arg name="initial_positions_file" default="initial_positions.yaml"/>
+
+    <!-- ================= -->
+    <!-- Base robot        -->
+    <!-- ================= -->
+    <xacro:include filename="$(find cora_description)/urdf/cora.urdf"/>
+
+    <!-- ================= -->
+    <!-- ros2_control      -->
+    <!-- ================= -->
+    <xacro:include filename="cora.ros2_control.xacro"/>
+
+    <xacro:cora_ros2_control
+        name="CoraSystem"
+        hardware_type="$(arg hardware_type)"
+        initial_positions_file="$(arg initial_positions_file)"/>
+
+    <!-- ================= -->
+    <!-- Optional gripper  -->
+    <!-- ================= -->
+
+    <!-- Store gripper package -->
+    <xacro:property
+        name="gripper_package_name"
+        value="$(arg gripper_package)"/>
+
+    <!-- Store gripper package path -->
+    <xacro:property
+        name="gripper_package_path"
+        value="$(find ${gripper_package_name})"/>
+
+    <!-- Only load gripper if one is provided -->
+    <xacro:if value="${gripper_package_name != 'None'}">
+
+        <!-- Load gripper macros -->
+        <xacro:include filename="${gripper_package_path}/urdf/cora_gripper.urdf.xacro"/>
+
+        <!-- Instantiate gripper -->
+        <xacro:cora_gripper_xacro
+            hardware_type="$(arg hardware_type)"
+            initial_positions_file="$(arg initial_positions_file)"/>
+
+    </xacro:if>
+
+</robot>

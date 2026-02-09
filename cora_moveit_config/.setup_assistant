@@ -1,0 +1,27 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: cora_description
+    relative_path: urdf/cora.urdf
+  srdf:
+    relative_path: config/cora.srdf
+  package_settings:
+    author_name: Matthew de Lannoy
+    author_email: matthewdelannoy527@gmail.com
+    generated_timestamp: 1766780872
+  control_xacro:
+    command:
+      - position
+      - velocity
+    state:
+      - position
+      - velocity
+  modified_urdf:
+    xacros:
+      - control_xacro
+  control_xacro:
+    command:
+      - position
+      - velocity
+    state:
+      - position
+      - velocity

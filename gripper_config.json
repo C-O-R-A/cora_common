@@ -1,0 +1,22 @@
+// onshape to robot config file
+{
+    // Onshape URL of the assembly
+    "url": "https://cad.onshape.com/documents/971c71e558f4d758be7c1282/w/a52d355fced062b7019a3a28/e/8a6e7f21341ffe88c8667240",
+    
+    // Output format
+    "output_format": "urdf",
+    "output_filename": "cora_gripper_1_description/urdf",
+    "assets_directory": "cora_gripper_1_description/meshes",
+
+    // Merge STL meshes (default: false)
+    "merge_stls": true,
+
+    // Add a dummy base link (default: false)
+    "add_dummy_base_link": true,
+
+    "robot_name": "gripper",
+    "post_import_commands": [
+        // we could possibly do some postprocessing in here
+        "echo 'Import done'"
+    ]  
+}

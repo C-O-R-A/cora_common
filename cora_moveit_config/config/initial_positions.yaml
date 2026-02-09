@@ -1,0 +1,10 @@
+# Default initial positions for cora's ros2_control fake system
+
+initial_positions:
+  Finger1: 0.0
+  J1: 0.0
+  J2: 0.0
+  J3: 0.0
+  J4: 0.0
+  J5: 0.0
+  J6: 0.0

@@ -1,0 +1,24 @@
+repositories:
+  moveit_task_constructor:
+    type: git
+    url: https://github.com/moveit/moveit_task_constructor.git
+    version: ros2
+  moveit_visual_tools:
+    type: git
+    url: https://github.com/moveit/moveit_visual_tools
+    version: ros2
+  rviz_visual_tools:
+    type: git
+    url: https://github.com/PickNikRobotics/rviz_visual_tools.git
+    version: ros2
+  moveit2:
+    type: git
+    url: https://github.com/moveit/moveit2
+    version: main
+  moveit_msgs:
+    type: git
+    url: https://github.com/moveit/moveit_msgs
+    version: ros2
+
+# add these repos with the following command when building from source:
+# vcs import --recursive < cora_moveit/cora_moveit.repos
