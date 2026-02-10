@@ -21,7 +21,7 @@
     <visual>
       <origin xyz="-8.1956e-10 -3.65639e-06 0.117444" rpy="0 -0 0"/>
       <geometry>
-        <mesh filename="package://cora_description/meshes/cora/merged/baselink_visual.stl"/>
+        <mesh filename="file://$(find cora_description)/meshes/cora/merged/baselink_visual.stl"/>
       </geometry>
       <material name="baselink_parts_material">
         <color rgba="0.243744 0.341731 0.5466 1"/>
@@ -30,7 +30,7 @@
     <collision>
       <origin xyz="-8.1956e-10 -3.65639e-06 0.117444" rpy="0 -0 0"/>
       <geometry>
-        <mesh filename="package://cora_description/meshes/cora/merged/baselink_collision.stl"/>
+        <mesh filename="file://$(find cora_description)/meshes/cora/merged/baselink_collision.stl"/>
       </geometry>
     </collision>
   </link>
@@ -45,7 +45,7 @@
     <visual>
       <origin xyz="0.0191928 0.0110806 -0.0814544" rpy="3.14159 -7.80145e-16 0.523599"/>
       <geometry>
-        <mesh filename="package://cora_description/meshes/cora/merged/l1_visual.stl"/>
+        <mesh filename="file://$(find cora_description)/meshes/cora/merged/l1_visual.stl"/>
       </geometry>
       <material name="l1_parts_material">
         <color rgba="0.333158 0.371302 0.428465 0.935322"/>
@@ -54,7 +54,7 @@
     <collision>
       <origin xyz="0.0191928 0.0110806 -0.0814544" rpy="3.14159 -7.80145e-16 0.523599"/>
       <geometry>
-        <mesh filename="package://cora_description/meshes/cora/merged/l1_collision.stl"/>
+        <mesh filename="file://$(find cora_description)/meshes/cora/merged/l1_collision.stl"/>
       </geometry>
     </collision>
   </link>
@@ -69,7 +69,7 @@
     <visual>
       <origin xyz="0.194271 0.112163 -0.082967" rpy="-0.523599 1.5708 0"/>
       <geometry>
-        <mesh filename="package://cora_description/meshes/cora/merged/l2_visual.stl"/>
+        <mesh filename="file://$(find cora_description)/meshes/cora/merged/l2_visual.stl"/>
       </geometry>
       <material name="l2_parts_material">
         <color rgba="0.352647 0.388789 0.438704 0.950503"/>
@@ -78,7 +78,7 @@
     <collision>
       <origin xyz="0.194271 0.112163 -0.082967" rpy="-0.523599 1.5708 0"/>
       <geometry>
-        <mesh filename="package://cora_description/meshes/cora/merged/l2_collision.stl"/>
+        <mesh filename="file://$(find cora_description)/meshes/cora/merged/l2_collision.stl"/>
       </geometry>
     </collision>
   </link>
@@ -93,7 +93,7 @@
     <visual>
       <origin xyz="4.64901e-07 -0.171257 -0.0792607" rpy="1.5708 -1.5708 0"/>
       <geometry>
-        <mesh filename="package://cora_description/meshes/cora/merged/l3_visual.stl"/>
+        <mesh filename="file://$(find cora_description)/meshes/cora/merged/l3_visual.stl"/>
       </geometry>
       <material name="l3_parts_material">
         <color rgba="0.373422 0.40919 0.458317 0.972899"/>
@@ -102,7 +102,7 @@
     <collision>
       <origin xyz="4.64901e-07 -0.171257 -0.0792607" rpy="1.5708 -1.5708 0"/>
       <geometry>
-        <mesh filename="package://cora_description/meshes/cora/merged/l3_collision.stl"/>
+        <mesh filename="file://$(find cora_description)/meshes/cora/merged/l3_collision.stl"/>
       </geometry>
     </collision>
   </link>
@@ -117,7 +117,7 @@
     <visual>
       <origin xyz="-4.28168e-07 0.0063774 -0.0558952" rpy="-1.5708 1.5708 0"/>
       <geometry>
-        <mesh filename="package://cora_description/meshes/cora/merged/l4_visual.stl"/>
+        <mesh filename="file://$(find cora_description)/meshes/cora/merged/l4_visual.stl"/>
       </geometry>
       <material name="l4_parts_material">
         <color rgba="0.324789 0.344876 0.368236 0.933148"/>
@@ -126,7 +126,7 @@
     <collision>
       <origin xyz="-4.28168e-07 0.0063774 -0.0558952" rpy="-1.5708 1.5708 0"/>
       <geometry>
-        <mesh filename="package://cora_description/meshes/cora/merged/l4_collision.stl"/>
+        <mesh filename="file://$(find cora_description)/meshes/cora/merged/l4_collision.stl"/>
       </geometry>
     </collision>
   </link>
@@ -141,7 +141,7 @@
     <visual>
       <origin xyz="-4.28168e-07 0.0063774 -0.0558952" rpy="-3.14159 -8.39713e-15 -1.5708"/>
       <geometry>
-        <mesh filename="package://cora_description/meshes/cora/merged/l5_visual.stl"/>
+        <mesh filename="file://$(find cora_description)/meshes/cora/merged/l5_visual.stl"/>
       </geometry>
       <material name="l5_parts_material">
         <color rgba="0.324789 0.344876 0.368236 0.933148"/>
@@ -150,7 +150,7 @@
     <collision>
       <origin xyz="-4.28168e-07 0.0063774 -0.0558952" rpy="-3.14159 -8.39713e-15 -1.5708"/>
       <geometry>
-        <mesh filename="package://cora_description/meshes/cora/merged/l5_collision.stl"/>
+        <mesh filename="file://$(find cora_description)/meshes/cora/merged/l5_collision.stl"/>
       </geometry>
     </collision>
   </link>
@@ -165,7 +165,7 @@
     <visual>
       <origin xyz="1.17217 5.74112e-15 -0.083" rpy="1.42696e-14 -1.5708 0"/>
       <geometry>
-        <mesh filename="package://cora_description/meshes/cora/merged/endeffector_visual.stl"/>
+        <mesh filename="file://$(find cora_description)/meshes/cora/merged/endeffector_visual.stl"/>
       </geometry>
       <material name="endeffector_parts_material">
         <color rgba="0.4 0.4 0.4 1.0"/>
@@ -174,7 +174,7 @@
     <collision>
       <origin xyz="1.17217 5.74112e-15 -0.083" rpy="1.42696e-14 -1.5708 0"/>
       <geometry>
-        <mesh filename="package://cora_description/meshes/cora/merged/endeffector_collision.stl"/>
+        <mesh filename="file://$(find cora_description)/meshes/cora/merged/endeffector_collision.stl"/>
       </geometry>
     </collision>
   </link>
