@@ -83,7 +83,7 @@
                 <state_interface name="velocity"/>
                 <param name="node_id">5</param>
             </joint>
-        
+
         </ros2_control>
     </xacro:macro>
 </robot>

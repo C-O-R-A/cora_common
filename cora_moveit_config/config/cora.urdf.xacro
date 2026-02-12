@@ -54,11 +54,11 @@
     <!-- ===================== -->
     <!--     Gazebo plugin     -->
     <!-- ===================== -->
-    </xacro:if value="${hardware_type == 'Gazebo'}"/>
+    </xacro:if value="${hardware_type == 'Gazebo'}">
         <gazebo>
-        <plugin filename="libgz_ros2_control-system.so" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
-            <parameters>$(find cora_moveit_config)/config/ros2_controllers.yaml</parameters>
-        </plugin>
+            <plugin filename="libgz_ros2_control-system.so" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+                <parameters>$(find cora_moveit_config)/config/ros2_controllers.yaml</parameters>
+            </plugin>
         </gazebo>
     </xacro:if>
 
