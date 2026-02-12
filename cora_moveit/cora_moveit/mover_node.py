@@ -87,85 +87,99 @@ class MoverNodeServer(Node):
             predefined_pose = None
             gripper_goal = goal_handle.request.gripper_goal
 
-            self.cora_arm.set_start_state_to_current_state()
-
+            self.get_logger().info(f'<<<<<<<<<<<<<<<<<< gripper goal: {gripper_goal}>>>>>>>>>>>>>>>>>>>')
             if gripper_goal is not None:
                     self.cora_gripper.set_start_state_to_current_state()
-                    self.robot_state.joint_positions["Finger1"] = gripper_goal
+                    self.robot_state.set_joint_group_positions("gripper_fingers", np.array([gripper_goal], dtype=np.float64))
 
                     # set_goal_state with a RobotState is safer for simple goals
                     # and avoids potential lifetime issues in bindings.
                     self.cora_gripper.set_goal_state(robot_state=self.robot_state)
 
-            # Selecting a predefined pose takes precidence over any other goals
-            if goal_handle.request.predefined_pose:
-                predefined_pose = goal_handle.request.predefined_pose.strip().lower()
-                self.get_logger().info(
-                    f"Using predefined pose: {predefined_pose}"
-                )
-                self.cora_arm.set_goal_state(configuration_name=predefined_pose)
+                    self.get_logger().info("Planning Trajectory")
+                    plan_result = self.cora_gripper.plan()
 
-            # If no predefined pose is specified, proceed to set goal based on space
-            else:
-                # Task Space goal
-                if space == "TS":
-                    self.get_logger().info("Setting Task Space goal...")
-
-                    # Extract task space goal and target from action request
-                    # pose goal should be posestamped msg sent from the client
-                    try:
-                        if interface_type == "position":
-                            pose_goal = goal_handle.request.pose_goal.pose
-                            target = goal_handle.request.pose_goal.target_frame
-
-                            # Set goal state
-                            self.cora_arm.set_goal_state(
-                                pose_stamped_msg=pose_goal, 
-                                pose_link=target,
-                                )
-
-                    except ValueError as e:
-                        self.get_logger().error(e + "Cancelling motion plan request...")
-                        goal_handle.abort()
+                    # execute the plan
+                    if plan_result:
+                        self.get_logger().info("Executing plan")
+                        robot_trajectory = plan_result.trajectory
+                        execution_result = self.cora.execute(robot_trajectory, controllers=['gripper_fingers_controller'])
+                        self.get_logger().info(f"Gripper execution completed with result: {execution_result}")
+                    else:
+                        self.get_logger().error("Planning failed")
                         return PoseGoal.Result()
 
-                # Joint Space goal
-                elif space == "JS":
-                    self.get_logger().info("Setting Joint Space goal...")
+            # self.cora_arm.set_start_state_to_current_state()
 
-                    # Extract joint space goal array from action request
-                    joint_goal = goal_handle.request.joint_goal
+            # # Selecting a predefined pose takes precidence over any other goals
+            # if goal_handle.request.predefined_pose:
+            #     predefined_pose = goal_handle.request.predefined_pose.strip().lower()
+            #     self.get_logger().info(
+            #         f"Using predefined pose: {predefined_pose}"
+            #     )
+            #     self.cora_arm.set_goal_state(configuration_name=predefined_pose)
 
-                    # Assign values from array to dict elements
-                    joint_values = np.array(joint_goal, dtype=np.float64)
+            # # If no predefined pose is specified, proceed to set goal based on space
+            # else:
+            #     # Task Space goal
+            #     if space == "TS":
+            #         self.get_logger().info("Setting Task Space goal...")
 
-                    # Set joint values to the correct interface
-                    self.joint_interface_methods[interface_type](
-                        "arm",
-                        joint_values
-                    )
+            #         # Extract task space goal and target from action request
+            #         # pose goal should be posestamped msg sent from the client
+            #         try:
+            #             if interface_type == "position":
+            #                 pose_goal = goal_handle.request.pose_goal.pose
+            #                 target = goal_handle.request.pose_goal.target_frame
 
-                    # Construct joint constraint goal
-                    constraint = construct_joint_constraint(
-                        robot_state=self.robot_state,
-                        joint_model_group=self.robot_model.get_joint_model_group("arm"),
-                    )
+            #                 # Set goal state
+            #                 self.cora_arm.set_goal_state(
+            #                     pose_stamped_msg=pose_goal, 
+            #                     pose_link=target,
+            #                     )
 
-                    self.cora_arm.set_goal_state(
-                                motion_plan_constraints=constraint
-                            )
+            #         except ValueError as e:
+            #             self.get_logger().error(e + "Cancelling motion plan request...")
+            #             goal_handle.abort()
+            #             return PoseGoal.Result()
 
-            self.get_logger().info("Planning Trajectory")
-            plan_result = self.cora_arm.plan()
+            #     # Joint Space goal
+            #     elif space == "JS":
+            #         self.get_logger().info("Setting Joint Space goal...")
 
-            # execute the plan
-            if plan_result:
-                self.get_logger().info("Executing plan")
-                robot_trajectory = plan_result.trajectory
-                self.cora.execute(robot_trajectory, controllers=["arm_controller", 'gripper_fingers_controller'])
-            else:
-                self.get_logger().error("Planning failed")
-                return PoseGoal.Result()
+            #         # Extract joint space goal array from action request
+            #         joint_goal = goal_handle.request.joint_goal
+
+            #         # Assign values from array to dict elements
+            #         joint_values = np.array(joint_goal, dtype=np.float64)
+
+            #         # Set joint values to the correct interface
+            #         self.joint_interface_methods[interface_type](
+            #             "arm",
+            #             joint_values
+            #         )
+
+            #         # Construct joint constraint goal
+            #         constraint = construct_joint_constraint(
+            #             robot_state=self.robot_state,
+            #             joint_model_group=self.robot_model.get_joint_model_group("arm"),
+            #         )
+
+            #         self.cora_arm.set_goal_state(
+            #                     motion_plan_constraints=constraint
+            #                 )
+
+            # self.get_logger().info("Planning Trajectory")
+            # plan_result = self.cora_arm.plan()
+
+            # # execute the plan
+            # if plan_result:
+            #     self.get_logger().info("Executing plan")
+            #     robot_trajectory = plan_result.trajectory
+            #     self.cora.execute(robot_trajectory, controllers=["arm_controller", 'gripper_fingers_controller'])
+            # else:
+            #     self.get_logger().error("Planning failed")
+            #     return PoseGoal.Result()
 
     
             goal_handle.succeed()
