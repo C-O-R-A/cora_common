@@ -16,12 +16,31 @@
     <!-- ================= -->
     <!-- ros2_control      -->
     <!-- ================= -->
-    <xacro:include filename="cora.ros2_control.xacro"/>
 
-    <xacro:cora_ros2_control
-        name="CoraSystem"
-        hardware_type="$(arg hardware_type)"
-        initial_positions_file="$(arg initial_positions_file)"/>
+    <!-- Store hardware_type -->
+    <xacro:property
+        name="hardware_type"
+        value="$(arg hardware_type)"/>
+
+    <xacro:if value="${hardware_type != 'Gazebo'}">
+        <xacro:include filename="cora.ros2_control.xacro"/>
+        <xacro:cora_ros2_control
+            name="CoraSystem"
+            hardware_type="$(arg hardware_type)"
+            initial_positions_file="$(arg initial_positions_file)"/>
+    </xacro:if>
+
+    <xacro:if value="${hardware_type == 'Gazebo'}">
+
+        <!-- gazebo ros2 control configuration -->
+        <xacro:include filename="cora_gazebo.ros2_control.xacro"/>
+        <xacro:cora_gazebo_ros2_control
+            initial_positions_file="$(arg initial_positions_file)"/>
+        
+        <!-- gazebo sensors and plugins -->
+        <xacro:include filename="$(find cora_gazebo)/config/cora_gazebo.xacro"/>
+        <xacro:cora_gazebo/>
+    </xacro:if>
 
     <!-- ================= -->
     <!-- Optional gripper  -->
@@ -50,7 +69,5 @@
 
     </xacro:if>
 
-    <xacro:include filename="$(find cora_gazebo)/config/cora_gazebo.xacro"/>
-    <xacro:cora_gazebo/>
 
 </robot>
