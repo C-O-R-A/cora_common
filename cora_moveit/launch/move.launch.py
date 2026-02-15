@@ -13,6 +13,7 @@ from launch.substitutions import LaunchConfiguration, PythonExpression
 from moveit_configs_utils import MoveItConfigsBuilder
 from launch.substitutions import Command, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
+from launch.event_handlers import OnProcessExit
 
 
 def load_yaml(package_name, file_path):
@@ -66,7 +67,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "hardware_type",
             default_value="Fake",
-            description="Choose hardware type: Fake or Real",
+            description="Choose hardware type: Fake or Real or Gazebo",
         )
     )
 
@@ -167,18 +168,18 @@ def generate_launch_description():
         condition=servo_condition,
     )
 
-    gripper_servo_node = Node(
-    package="moveit_servo",
-    executable="servo_node",
-    parameters=[
-        gripper_servo_params,
-        robot_description,
-        moveit_config.robot_description_semantic,
-        moveit_config.robot_description_kinematics,
-    ],
-    output="screen",
-    condition=gripper_servo_condition,
-    )
+    # gripper_servo_node = Node(
+    # package="moveit_servo",
+    # executable="servo_node",
+    # parameters=[
+    #     gripper_servo_params,
+    #     robot_description,
+    #     moveit_config.robot_description_semantic,
+    #     moveit_config.robot_description_kinematics,
+    # ],
+    # output="screen",
+    # condition=gripper_servo_condition,
+    # )
 
     # Rviz config
     rviz_config_file = os.path.join(
@@ -247,14 +248,14 @@ def generate_launch_description():
 
     load_controllers = []
     for controller in [
-        "arm_controller",
-        "gripper_fingers_controller",
-        "realtime_gripper_fingers_controller",
         "joint_state_broadcaster",
+        "arm_controller",
+        # "gripper_fingers_controller",
+        # "realtime_gripper_fingers_controller",
     ]:
         load_controllers += [
             ExecuteProcess(
-                cmd=["ros2 run controller_manager spawner {}".format(controller)],
+                cmd=[f"ros2 run controller_manager spawner {controller}"],
                 shell=True,
                 output="log",
             )
@@ -267,7 +268,7 @@ def generate_launch_description():
             moveit_py_node,
             servo_node,
             robot_state_publisher,
-            ros2_control_node,
+            # ros2_control_node,
             rviz_node,
             static_tf,
         ]

@@ -6,11 +6,11 @@ controller_manager:
     arm_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
-    gripper_fingers_controller:
-      type: parallel_gripper_action_controller/GripperActionController
+    # gripper_fingers_controller:
+    #   type: parallel_gripper_action_controller/GripperActionController
     
-    realtime_gripper_fingers_controller:
-      type: forward_command_controller/ForwardCommandController
+    # realtime_gripper_fingers_controller:
+    #   type: forward_command_controller/ForwardCommandController
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
@@ -34,17 +34,17 @@ arm_controller:
     # state_publish_rate: 60.00
     # action_monitor_rate: 20.00
 
-gripper_fingers_controller:
-  ros__parameters:
-    joint: Finger1        
-    state_interfaces:
-      - position
-      - velocity
-    goal_tolerance: 0.005
-    allow_stalling: false
+# gripper_fingers_controller:
+#   ros__parameters:
+#     joint: Finger1        
+#     state_interfaces:
+#       - position
+#       - velocity
+#     goal_tolerance: 0.005
+#     allow_stalling: false
 
-realtime_gripper_fingers_controller:
-  ros__parameters:
-    joints: 
-      - Finger1
-    interface_name: velocity
+# realtime_gripper_fingers_controller:
+#   ros__parameters:
+#     joints: 
+#       - Finger1
+#     interface_name: velocity

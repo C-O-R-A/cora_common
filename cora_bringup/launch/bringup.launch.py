@@ -46,6 +46,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "hardware_type",
             default_value="Fake",
+            choices=["Fake", "Real", "Gazebo"],
             description="Choose hardware type: Fake or Real",
         )
     )
@@ -93,7 +94,7 @@ def generate_launch_description():
             )
         ),
         launch_arguments={
-            "use_servo": "true",
+            "use_servo": "false",
             "use_moveitpy": "true",
             "gripper_package": gripper_package,
             "hardware_type": hardware_type,

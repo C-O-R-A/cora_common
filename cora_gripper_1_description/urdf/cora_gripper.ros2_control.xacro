@@ -16,19 +16,28 @@
                 <plugin>gripper_1_ros2_control_plugin/GripperHardwareInterface</plugin>
                 <param name="can">can0</param>
               </xacro:if>
+
+              <!-- Gazebo hardware components -->
+              <xacro:if value="${hardware_type == 'Gazebo'}">
+                <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+              </xacro:if>
             </hardware>
 
             <joint name="Finger1">
                 <command_interface name="position"/>
-                <command_interface name="velocity"/>
+                <!-- <command_interface name="velocity"/> -->
                 <state_interface name="position">
                   <param name="initial_value">${initial_positions['Finger1']}</param>
                 </state_interface>
-                <state_interface name="position"/>
                 <state_interface name="velocity"/>
                 <param name="node_id">6</param>
             </joint>
 
+            <joint name="Finger2">
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <param name="node_id">6</param>
+            </joint>
         </ros2_control>
     </xacro:macro>
 </robot>
