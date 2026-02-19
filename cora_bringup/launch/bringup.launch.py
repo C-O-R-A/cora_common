@@ -52,6 +52,12 @@ def generate_launch_description():
 
     declared_arguments.append(
         DeclareLaunchArgument(
+            "use_sim_time", default_value="false", description="Use sim time boolean"
+        )
+    )
+
+    declared_arguments.append(
+        DeclareLaunchArgument(
             "hardware_type",
             default_value="Fake",
             choices=["Fake", "Real", "Gazebo"],
@@ -75,6 +81,7 @@ def generate_launch_description():
     gripper_package = LaunchConfiguration("gripper_package")
     hardware_type = LaunchConfiguration("hardware_type")
     launch_rsp = LaunchConfiguration("launch_rsp")
+    use_sim_time = LaunchConfiguration("use_sim_time")
 
     #########
     # Nodes #
@@ -108,6 +115,7 @@ def generate_launch_description():
             "gripper_package": gripper_package,
             "hardware_type": hardware_type,
             "launch_rsp": launch_rsp,
+            "use_sim_time": use_sim_time,
         }.items(),
     )
 

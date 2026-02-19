@@ -47,6 +47,11 @@ class CodiNode(Node):
         self.last_command = self.codi_server.get_command()
 
         # Transform listener
+        self.reference_frames = ["Gripper", 
+                                 "Camera",
+                                 "endeffector",
+                                 ]
+        self.transforms = {}
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
         self.timer = self.create_timer(self.timer_period, self.transforms_callback)
@@ -137,29 +142,23 @@ class CodiNode(Node):
 
     def transforms_callback(self):
         try:
-            gripper_transform_stamped = self.tf_buffer.lookup_transform(
-                "base_link", "Gripper", rclpy.time.Time()
-            )
-            camera_transform_stamped = self.tf_buffer.lookup_transform(
-                "base_link", "Camera", rclpy.time.Time()
-            )
-            end_effector_transform_stamped = self.tf_buffer.lookup_transform(
-                "base_link", "endeffector", rclpy.time.Time()
-            )
-
-            self.gripper_transforms = self.transform_to_array(gripper_transform_stamped)
-            self.camera_transforms = self.transform_to_array(camera_transform_stamped)
-            self.end_effector_transforms = self.transform_to_array(
-                end_effector_transform_stamped
-            )
+            transform_stamped = {}
+            for ref in self.reference_frames:
+                if self.tf_buffer.can_transform("base_link", ref, rclpy.time.Time()):
+                    transform_stamped[ref] = self.tf_buffer.lookup_transform(
+                        "base_link", ref, rclpy.time.Time()
+                    )
+                    self.transforms[ref] = self.transform_to_array(transform_stamped[ref])
+                else:
+                    self.transforms[ref] = np.zeros((2,4))
 
             # Send to Client
             self.codi_server.send_state(
                 self.status,
                 "TS",
-                self.end_effector_transforms,
-                self.camera_transforms,
-                self.gripper_transforms,
+                self.transforms["endeffector"],
+                self.transforms["Camera"],
+                self.transforms["Gripper"],
             )
 
         except Exception as e:
@@ -200,9 +199,6 @@ class CodiNode(Node):
                 self.publish_joint = False
 
                 try:
-                    # ------------------------- #
-                    # Construct gripper message #
-                    # ------------------------- #
 
                     # ----------------------- #
                     # Construct Robot message #

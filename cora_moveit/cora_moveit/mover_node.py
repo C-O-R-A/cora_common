@@ -46,7 +46,6 @@ class MoverNodeServer(Node):
         # Instantiate a MoveitPy instance
         self.cora = MoveItPy(node_name="mover_node_server")
         self.cora_arm = self.cora.get_planning_component("arm")
-        self.cora_gripper = self.cora.get_planning_component("gripper_fingers")
         self.get_logger().info("MoveitPy instance created!")
 
         # Instantiate a RobotState instance using the current robot model
@@ -89,6 +88,7 @@ class MoverNodeServer(Node):
 
             self.get_logger().info(f'<<<<<<<<<<<<<<<<<< gripper goal: {gripper_goal}>>>>>>>>>>>>>>>>>>>')
             if gripper_goal is not None:
+                    self.cora_gripper = self.cora.get_planning_component("gripper_fingers")
                     self.cora_gripper.set_start_state_to_current_state()
                     self.robot_state.set_joint_group_positions("gripper_fingers", np.array([gripper_goal], dtype=np.float64))
 

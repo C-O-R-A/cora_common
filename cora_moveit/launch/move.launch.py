@@ -37,7 +37,9 @@ def generate_launch_description():
 
     # Get parameters for the Servo node
     servo_yaml = load_yaml("cora_moveit", "config/servo_parameters.yaml")
-    gripper_servo_yaml = load_yaml("cora_moveit", "config/gripper_servo_parameters.yaml")
+    gripper_servo_yaml = load_yaml(
+        "cora_moveit", "config/gripper_servo_parameters.yaml"
+    )
     servo_params = {"moveit_servo": servo_yaml}
     gripper_servo_params = {"moveit_servo": gripper_servo_yaml}
 
@@ -60,6 +62,12 @@ def generate_launch_description():
             "use_moveitpy",
             default_value="false",
             description="Whether to launch moveitpy node",
+        )
+    )
+
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "use_sim_time", default_value="false", description="Use sim time boolean"
         )
     )
 
@@ -103,21 +111,21 @@ def generate_launch_description():
 
     gripper_package = LaunchConfiguration("gripper_package")
 
+    use_sim_time = LaunchConfiguration("use_sim_time")
+
     servo_condition = IfCondition(LaunchConfiguration("use_servo"))
 
     launch_rsp = IfCondition(LaunchConfiguration("launch_rsp"))
 
-    gripper_servo_condition = IfCondition(
-        PythonExpression([
-            "'", LaunchConfiguration("use_servo"), "' == 'true' and '",
-            LaunchConfiguration("gripper_package"), "' != 'None'"
-        ])
-    )
+    # gripper_servo_condition = IfCondition(
+    #     PythonExpression([
+    #         "'", LaunchConfiguration("use_servo"), "' == 'true' and '",
+    #         LaunchConfiguration("gripper_package"), "' != 'None'"
+    #     ])
+    # )
 
     hardware_condition = IfCondition(
-        PythonExpression([
-            "'", hardware_type, "' != 'Gazebo'"
-        ])
+        PythonExpression(["'", hardware_type, "' != 'Gazebo'"])
     )
 
     #####################
@@ -166,7 +174,10 @@ def generate_launch_description():
         package="cora_moveit",
         executable=LaunchConfiguration("executable_name"),
         output="both",
-        parameters=[moveit_config.to_dict()],
+        parameters=[
+            moveit_config.to_dict(),
+            {"use_sim_time": use_sim_time},
+        ],
         condition=IfCondition(LaunchConfiguration("use_moveitpy")),
     )
 
@@ -178,6 +189,7 @@ def generate_launch_description():
             robot_description,
             moveit_config.robot_description_semantic,
             moveit_config.robot_description_kinematics,
+            {"use_sim_time": use_sim_time},
         ],
         output="screen",
         condition=servo_condition,
@@ -222,7 +234,7 @@ def generate_launch_description():
         output="screen",
         parameters=[
             moveit_config.to_dict(),
-            {"use_sim_time": True},
+            {"use_sim_time": use_sim_time},
         ],
     )
 
@@ -252,43 +264,44 @@ def generate_launch_description():
         "ros2_controllers.yaml",
     )
 
-    # # Ros 2 controllers node
-    # ros2_control_node = Node(
-    #     package="controller_manager",
-    #     executable="ros2_control_node",
-    #     parameters=[ros2_controllers_path],
-    #     remappings=[
-    #         ("/controller_manager/robot_description", "/robot_description"),
-    #     ],
-    #     output="log",
-    #     condition=hardware_condition,
-    # )
+    # Ros 2 controllers node
+    ros2_control_node = Node(
+        package="controller_manager",
+        executable="ros2_control_node",
+        parameters=[ros2_controllers_path],
+        remappings=[
+            ("/controller_manager/robot_description", "/robot_description"),
+        ],
+        output="log",
+        condition=hardware_condition,
+    )
 
     joint_state_broadcaster_spawner = Node(
-        package='controller_manager',
-        executable='spawner',
-        arguments=['joint_state_broadcaster'],
+        package="controller_manager",
+        executable="spawner",
+        arguments=["joint_state_broadcaster"],
     )
 
     arm_controller_spawner = Node(
-        package='controller_manager',
-        executable='spawner',
-        arguments=['arm_controller',
-                   '--param-file',
-                   ros2_controllers_path,
-                   ],
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "arm_controller",
+            "--param-file",
+            ros2_controllers_path,
+        ],
     )
 
     nodes = [
-                move_group_node,
-                # ros2_control_node,
-                moveit_py_node,
-                servo_node,
-                robot_state_publisher,
-                rviz_node,
-                static_tf,
-                joint_state_broadcaster_spawner,
-            ]
+        move_group_node,
+        ros2_control_node,
+        moveit_py_node,
+        servo_node,
+        robot_state_publisher,
+        rviz_node,
+        static_tf,
+        joint_state_broadcaster_spawner,
+    ]
 
     #############################
     # Event handlers and timers #
@@ -303,11 +316,7 @@ def generate_launch_description():
 
     event_handlers = [spawner_event_handler]
 
-    return LaunchDescription(
-        declared_arguments
-        + nodes
-        + event_handlers
-    )
+    return LaunchDescription(declared_arguments + nodes + event_handlers)
 
 
 # ros2 launch cora_moveit move.launch.py use_servo:=true use_moveitpy:=true
