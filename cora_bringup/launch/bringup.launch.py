@@ -36,6 +36,14 @@ def generate_launch_description():
 
     declared_arguments.append(
         DeclareLaunchArgument(
+            "launch_rsp",
+            default_value="true",
+            description="Whether to launch rsp automatically",
+        )
+    )
+
+    declared_arguments.append(
+        DeclareLaunchArgument(
             "use_codi",
             default_value="true",
             description="Whether to use CoDi for control",
@@ -66,6 +74,7 @@ def generate_launch_description():
     codi_launch_condition = IfCondition(LaunchConfiguration("use_codi"))
     gripper_package = LaunchConfiguration("gripper_package")
     hardware_type = LaunchConfiguration("hardware_type")
+    launch_rsp = LaunchConfiguration("launch_rsp")
 
     #########
     # Nodes #
@@ -98,6 +107,7 @@ def generate_launch_description():
             "use_moveitpy": "true",
             "gripper_package": gripper_package,
             "hardware_type": hardware_type,
+            "launch_rsp": launch_rsp,
         }.items(),
     )
 

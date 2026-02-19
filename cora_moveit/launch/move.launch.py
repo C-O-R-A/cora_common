@@ -8,7 +8,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.conditions import IfCondition
-from launch.actions import DeclareLaunchArgument, ExecuteProcess
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, RegisterEventHandler
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from moveit_configs_utils import MoveItConfigsBuilder
 from launch.substitutions import Command, PathJoinSubstitution
@@ -87,6 +87,14 @@ def generate_launch_description():
         )
     )
 
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "launch_rsp",
+            default_value="true",
+            description="Whether to launch rsp automatically",
+        )
+    )
+
     ########################
     # Launch Configuration #
     ########################
@@ -97,6 +105,8 @@ def generate_launch_description():
 
     servo_condition = IfCondition(LaunchConfiguration("use_servo"))
 
+    launch_rsp = IfCondition(LaunchConfiguration("launch_rsp"))
+
     gripper_servo_condition = IfCondition(
         PythonExpression([
             "'", LaunchConfiguration("use_servo"), "' == 'true' and '",
@@ -104,6 +114,11 @@ def generate_launch_description():
         ])
     )
 
+    hardware_condition = IfCondition(
+        PythonExpression([
+            "'", hardware_type, "' != 'Gazebo'"
+        ])
+    )
 
     #####################
     # Robot Description #
@@ -207,6 +222,7 @@ def generate_launch_description():
         output="screen",
         parameters=[
             moveit_config.to_dict(),
+            {"use_sim_time": True},
         ],
     )
 
@@ -226,6 +242,7 @@ def generate_launch_description():
         name="robot_state_publisher",
         output="log",
         parameters=[robot_description],
+        condition=launch_rsp,
     )
 
     # Ros 2 controllers config
@@ -235,44 +252,61 @@ def generate_launch_description():
         "ros2_controllers.yaml",
     )
 
-    # Ros 2 controllers node
-    ros2_control_node = Node(
-        package="controller_manager",
-        executable="ros2_control_node",
-        parameters=[ros2_controllers_path],
-        remappings=[
-            ("/controller_manager/robot_description", "/robot_description"),
-        ],
-        output="log",
+    # # Ros 2 controllers node
+    # ros2_control_node = Node(
+    #     package="controller_manager",
+    #     executable="ros2_control_node",
+    #     parameters=[ros2_controllers_path],
+    #     remappings=[
+    #         ("/controller_manager/robot_description", "/robot_description"),
+    #     ],
+    #     output="log",
+    #     condition=hardware_condition,
+    # )
+
+    joint_state_broadcaster_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['joint_state_broadcaster'],
     )
 
-    load_controllers = []
-    for controller in [
-        "joint_state_broadcaster",
-        "arm_controller",
-        # "gripper_fingers_controller",
-        # "realtime_gripper_fingers_controller",
-    ]:
-        load_controllers += [
-            ExecuteProcess(
-                cmd=[f"ros2 run controller_manager spawner {controller}"],
-                shell=True,
-                output="log",
-            )
-        ]
+    arm_controller_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['arm_controller',
+                   '--param-file',
+                   ros2_controllers_path,
+                   ],
+    )
+
+    nodes = [
+                move_group_node,
+                # ros2_control_node,
+                moveit_py_node,
+                servo_node,
+                robot_state_publisher,
+                rviz_node,
+                static_tf,
+                joint_state_broadcaster_spawner,
+            ]
+
+    #############################
+    # Event handlers and timers #
+    #############################
+
+    spawner_event_handler = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=joint_state_broadcaster_spawner,
+            on_exit=[arm_controller_spawner],
+        )
+    )
+
+    event_handlers = [spawner_event_handler]
 
     return LaunchDescription(
         declared_arguments
-        + [
-            move_group_node,
-            moveit_py_node,
-            servo_node,
-            robot_state_publisher,
-            # ros2_control_node,
-            rviz_node,
-            static_tf,
-        ]
-        + load_controllers
+        + nodes
+        + event_handlers
     )
 
 

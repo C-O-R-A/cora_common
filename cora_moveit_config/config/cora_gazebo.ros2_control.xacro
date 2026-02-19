@@ -8,7 +8,7 @@
             <hardware>
                 <!-- Gazebo hardware components -->
                 <plugin>gz_ros2_control/GazeboSimSystem</plugin>
-                <param name="update_rate">1000</param>
+                <param name="update_rate">100</param>
             </hardware>
 
             <joint name="J1">
