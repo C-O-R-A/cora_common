@@ -25,7 +25,7 @@ CONFIG = HERE.parent / "config" / "server_params.yaml"
 
 
 class CodiNode(Node):
-    # TODO: Add new predefined pose fucntionality using MoveitPy and srdf
+    # TODO: Add new predefined pose functionality using MoveitPy and srdf
     # TODO: ADD Gripper command
     def __init__(self):
         super().__init__("codi_node")

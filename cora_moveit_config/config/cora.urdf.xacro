@@ -68,6 +68,4 @@
             initial_positions_file="$(arg initial_positions_file)"/>
 
     </xacro:if>
-
-
 </robot>

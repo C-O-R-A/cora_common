@@ -9,14 +9,13 @@
         <visual>
         <origin xyz="0 -1.17217 -0.059" rpy="-1.5708 -1.570793 0" />
         <geometry>
-            <mesh filename="meshes/gripper_body_visual.dae" />
+            <mesh filename="file://$(find cora_gripper_1_description)/meshes/gripper_body_visual.dae" />
         </geometry>
-        <material name="gripper_body_parts_material" />
         </visual>
         <collision>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-            <mesh filename="meshes/gripper_body_collision.stl" />
+            <mesh filename="file://$(find cora_gripper_1_description)/meshes/gripper_body_visual.dae" />
         </geometry>
         </collision>
         <inertial>
@@ -24,30 +23,27 @@
         <inertia ixx="0.00004" ixy="0" ixz="0" iyy="0.000062" iyz="0.000001" izz="0.000075" />
         </inertial>
     </link>
+
     <link name="Gripper">
-        <inertial>
-        <mass value="0" />
-        <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001" />
-        </inertial>
     </link>
+
     <link name="Camera">
-        <inertial>
-        <mass value="0" />
-        <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001" />
-        </inertial>
     </link>
+
+    <link name="Camera_optical">
+    </link>
+
     <link name="gripper_fingers">
         <visual>
         <origin xyz="1.17667 0.0095 0.07" rpy="-1.5708 0 1.5708" />
         <geometry>
-            <mesh filename="meshes/gripper_fingers_visual.dae" />
+            <mesh filename="file://$(find cora_gripper_1_description)/meshes/gripper_fingers_visual.dae" />
         </geometry>
-        <material name="gripper_fingers_parts_material" />
         </visual>
         <collision>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-            <mesh filename="meshes/gripper_fingers_collision.stl" />
+            <mesh filename="file://$(find cora_gripper_1_description)/meshes/gripper_fingers_visual.dae" />
         </geometry>
         </collision>
         <inertial>
@@ -59,14 +55,13 @@
         <visual>
         <origin xyz="-1.16767 0.0095 0.07" rpy="1.5708 0 1.5708" />
         <geometry>
-            <mesh filename="meshes/gripper_fingers_2_visual.dae" />
+            <mesh filename="file://$(find cora_gripper_1_description)/meshes/gripper_fingers_2_visual.dae" />
         </geometry>
-        <material name="gripper_fingers_2_parts_material" />
         </visual>
         <collision>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-            <mesh filename="meshes/gripper_fingers_2_collision.stl" />
+            <mesh filename="file://$(find cora_gripper_1_description)/meshes/gripper_fingers_2_visual.dae" />
         </geometry>
         </collision>
         <inertial>
@@ -75,7 +70,6 @@
         </inertial>
     </link>
 
-    <!-- Gripper -->
     <joint name="GripperFix" type="fixed">
         <origin xyz="0 0 -0.024" rpy="0 0 1.5708" />
         <parent link="endeffector" />
@@ -89,9 +83,15 @@
     </joint>
 
     <joint name="Camera_frame" type="fixed">
-        <origin xyz="0.016614 0.0515 -0.046096" rpy="0.000003 3.141593 -0.000003" />
+        <origin xyz="0.016614 0.0515 -0.046096" rpy="-1.57 1.57 0.0" />
         <parent link="gripper_body" />
         <child link="Camera" />
+    </joint>
+
+    <joint name="Camera_frame_optical" type="fixed">
+        <origin xyz="0.0 0.0 0.0" rpy="-1.5708 0.0 -1.5708" />
+        <parent link="Camera" />
+        <child link="Camera_optical" />
     </joint>
     
     <joint name="Finger1" type="prismatic">
@@ -112,27 +112,27 @@
 
     <!-- Sensors -->
     <gazebo reference="Camera">
-        <sensor name="gripper_body_sensor" type="camera">
-        <always_on>true</always_on>
-        <update_rate>30</update_rate>
-        <visualize>false</visualize>
-        <topic>/gripper_cam</topic>
-        <pose>0.016614 -0.0515 -0.046096 0.000003 -3.141593 -0.000003</pose>
-        <camera>
-            <horizontal_fov>0.959931</horizontal_fov>
-            <image>
-            <width>1280</width>
-            <height>720</height>
-            <format>R8G8B8</format>
-            </image>
-            <clip>
-            <near>0.1</near>
-            <far>100</far>
-            </clip>
-            <noise>
-            <type>gaussian</type>
-            </noise>
-        </camera>
+        <sensor name="gz_gripper_cam" type="camera">
+            <always_on>true</always_on>
+            <update_rate>30</update_rate>
+            <visualize>true</visualize>
+            <!-- <pose>0.016614 -0.0515 -0.046096 0.000003 -3.141593 -0.000003</pose> -->
+            <camera name="logitech c920">
+                <horizontal_fov>0.959931</horizontal_fov>
+                <image>
+                <width>1280</width>
+                <height>720</height>
+                <format>R8G8B8</format>
+                </image>
+                <clip>
+                <near>0.0001</near>
+                <far>1000</far>
+                </clip>
+                <noise>
+                <type>gaussian</type>
+                </noise>
+            </camera>
+            <gz_frame_id>Camera_optical</gz_frame_id>
         </sensor>
     </gazebo>
     

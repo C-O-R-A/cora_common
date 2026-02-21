@@ -164,6 +164,14 @@ def generate_launch_description():
 
     moveit_config = builder.to_moveit_configs()
 
+    ##############
+    # Executions #
+    ##############
+    rviz_use_x11 = [ExecuteProcess(
+        cmd=["export QT_QPA_PLATFORM=xcb"],
+        output="screen"
+    )]
+
     #########
     # Nodes #
     #########
@@ -221,6 +229,7 @@ def generate_launch_description():
         executable="rviz2",
         output="log",
         arguments=["-d", rviz_config_file],
+        # prefix=['xterm -e gdb -ex run --args'],
         parameters=[
             robot_description,
             moveit_config.robot_description_semantic,
@@ -292,6 +301,16 @@ def generate_launch_description():
         ],
     )
 
+    gripper_fingers_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "gripper_fingers_controller",
+            "--param-file",
+            ros2_controllers_path,
+        ],
+    )
+
     nodes = [
         move_group_node,
         ros2_control_node,
@@ -307,14 +326,28 @@ def generate_launch_description():
     # Event handlers and timers #
     #############################
 
-    spawner_event_handler = RegisterEventHandler(
+    # rviz_event_handler = RegisterEventHandler(
+    #     event_handler=OnProcessExit(
+    #         target_action=rviz_use_x11,
+    #         on_exit=[rviz_node],
+    #     )
+    # )
+
+    arm_spawner_event_handler = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=joint_state_broadcaster_spawner,
             on_exit=[arm_controller_spawner],
         )
     )
 
-    event_handlers = [spawner_event_handler]
+    gripper_spawner_event_handler = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=arm_controller_spawner,
+            on_exit=[gripper_fingers_controller_spawner],
+        )
+    )
+
+    event_handlers = [arm_spawner_event_handler, gripper_spawner_event_handler]
 
     return LaunchDescription(declared_arguments + nodes + event_handlers)
 
