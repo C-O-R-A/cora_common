@@ -24,6 +24,52 @@ static const rclcpp::Logger LOGGER = rclcpp::get_logger("move_group_demo");
 class MoverNodeServer : public rclcpp::Node
 {
     public:
-        using pose_goal = cora_msgs::action::PoseGoal;
-        
+        using PoseGoal = cora_msgs::action::PoseGoal;
+        using GoalHandlePoseGoal = rclcpp_action::ServerGoalHandle<PoseGoal>;
+
+        explicit MoverNodeServer(const rcl_cpp::NodeOptions & options = rclcpp::NodeOptions())
+        : Node("mover_node", options)
+        {
+            using namespace std::placeholders;
+
+            this->action_server = rclcpp_action::create_server<PoseGoal>(
+                this->get_node_base_interface(),
+                this->get_node_clock_interface(),
+                this->get_node_logging_interface(),
+                this->get_node_waitables_interface(),
+                "pose_goal",
+                std::bind(&MoverNodeServer::handle_goal, this, _1, _2),
+                std::bind(&MoverNodeServer::handle_cancel, this, _1),
+                std::bind(&MinimalActionServer::handle_accepted, this, _1));
+        }
+    
+    private:
+        rclcpp_action::Server<PoseGoal>::SharedPtr action_server_;
+
+        rclcpp_action::GoalResponse handle_goal(
+            rclcpp_action::GoalUUID & uuid,
+            std::shared_ptr<const PoseGoal::Goal> goal)
+        {
+            RCLCPP_INFO(this->get_logger)(), "Received goal request"
+        }
+
+        rclcpp_action::CancelResponse handle_cancel(
+            const std::shared_ptr<GoalHandlePoseGoal> goal_handle)
+        {
+            RCLCPP_INFO(this->get_logger(), "Received request to cancel");
+            (void)goal_handle;
+            return rclcpp_action::CancelResponse::ACCEPT;
+        }
+
+        void execute(){
+
+        }
+
+        void handle_accepted(){
+
+        }
+};
+
+int main(int argc, char ** argv){
+    rclcpp::init
 }
