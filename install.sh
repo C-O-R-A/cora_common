@@ -4,6 +4,7 @@ sudo apt install ros-jazzy-ros2-controllers
 sudo apt install ros-jazzy-moveit
 sudo apt install ros-jazzy-moveit-py
 sudo apt install ros-jazzy-moveit-servo
+sudo apt install ros-jazzy-moveit-visual-tools
 sudo rosdep-install
 
 pip install -r requirements.txt

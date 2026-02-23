@@ -164,14 +164,6 @@ def generate_launch_description():
 
     moveit_config = builder.to_moveit_configs()
 
-    ##############
-    # Executions #
-    ##############
-    rviz_use_x11 = [ExecuteProcess(
-        cmd=["export QT_QPA_PLATFORM=xcb"],
-        output="screen"
-    )]
-
     #########
     # Nodes #
     #########
@@ -273,14 +265,14 @@ def generate_launch_description():
         "ros2_controllers.yaml",
     )
 
-    # Ros 2 controllers node
     ros2_control_node = Node(
-        package="controller_manager",
-        executable="ros2_control_node",
-        parameters=[ros2_controllers_path],
-        remappings=[
-            ("/controller_manager/robot_description", "/robot_description"),
-        ],
+    package="controller_manager",
+    executable="ros2_control_node",
+    parameters=[
+        ros2_controllers_path,
+        robot_description,
+        {"use_sim_time": use_sim_time},
+    ],
         output="log",
         condition=hardware_condition,
     )
@@ -311,6 +303,19 @@ def generate_launch_description():
         ],
     )
 
+    # MoveGroupInterface
+    move_group_interface = Node(
+        name="move_group_test",
+        package="cora_moveit_cpp",
+        executable="cora_moveit_cpp",
+        output="screen",
+        parameters=[
+            robot_description,
+            moveit_config.robot_description_semantic,
+            moveit_config.robot_description_kinematics,
+        ],
+    )
+
     nodes = [
         move_group_node,
         ros2_control_node,
@@ -326,13 +331,6 @@ def generate_launch_description():
     # Event handlers and timers #
     #############################
 
-    # rviz_event_handler = RegisterEventHandler(
-    #     event_handler=OnProcessExit(
-    #         target_action=rviz_use_x11,
-    #         on_exit=[rviz_node],
-    #     )
-    # )
-
     arm_spawner_event_handler = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=joint_state_broadcaster_spawner,
@@ -347,7 +345,18 @@ def generate_launch_description():
         )
     )
 
-    event_handlers = [arm_spawner_event_handler, gripper_spawner_event_handler]
+    move_group_tutorial_event_handler = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=gripper_fingers_controller_spawner,
+            on_exit=[move_group_interface],
+        )
+    )
+
+    event_handlers = [
+                        arm_spawner_event_handler, 
+                        gripper_spawner_event_handler, 
+                        # move_group_tutorial_event_handler
+                      ]
 
     return LaunchDescription(declared_arguments + nodes + event_handlers)
 

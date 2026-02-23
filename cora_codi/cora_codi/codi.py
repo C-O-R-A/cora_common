@@ -76,6 +76,8 @@ class CodiNode(Node):
         self.rt_vel = np.zeros((2, 3))
         self.current_servo_mode = None
 
+        # Realtime gripper goal cmd to ForwardCommand
+
         # Lifecycle Node clients and Config
         self.vision_client = self.create_client(
             ChangeState, "/vision_node/change_state"

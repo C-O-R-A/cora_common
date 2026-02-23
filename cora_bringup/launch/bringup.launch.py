@@ -1,3 +1,7 @@
+'''
+ros2 launch cora_bringup bringup.launch.py use_codi:=true hardware:="Fake" gripper_package:='cora_gripper_1_description'
+'''
+
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -110,7 +114,7 @@ def generate_launch_description():
             )
         ),
         launch_arguments={
-            "use_servo": "false",
+            "use_servo": "true",
             "use_moveitpy": "true",
             "gripper_package": gripper_package,
             "hardware_type": hardware_type,
@@ -129,6 +133,3 @@ def generate_launch_description():
             codi_after_moveit,
         ]
     )
-
-
-# ros2 launch cora_bringup bringup.launch.py use_codi:=true hardware:="Fake" gripper_package:='cora_gripper_1_description'

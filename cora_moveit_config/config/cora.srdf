@@ -33,7 +33,7 @@
         <joint name="J5" value="1.5707"/>
         <joint name="J6" value="0"/>
     </group_state>
-        <group_state name="standby_2" group="arm">
+    <group_state name="standby_2" group="arm">
         <joint name="J1" value="1.5707"/>
         <joint name="J2" value="-0.7113"/>
         <joint name="J3" value="-1.995"/>
@@ -41,6 +41,7 @@
         <joint name="J5" value="1.5707"/>
         <joint name="J6" value="0"/>
     </group_state>
+
     <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
     <!-- <end_effector name="end_effector" parent_link="l5" group="arm"/> -->
     <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->
