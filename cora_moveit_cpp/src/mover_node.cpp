@@ -27,12 +27,12 @@ class MoverNodeServer : public rclcpp::Node
         using PoseGoal = cora_msgs::action::PoseGoal;
         using GoalHandlePoseGoal = rclcpp_action::ServerGoalHandle<PoseGoal>;
 
-        explicit MoverNodeServer(const rcl_cpp::NodeOptions & options = rclcpp::NodeOptions())
+        explicit MoverNodeServer(const rclcpp::NodeOptions & options = rclcpp::NodeOptions())
         : Node("mover_node", options)
         {
             using namespace std::placeholders;
 
-            this->action_server = rclcpp_action::create_server<PoseGoal>(
+            this->actionserver = rclcpp_action::create_server<PoseGoal>(
                 this->get_node_base_interface(),
                 this->get_node_clock_interface(),
                 this->get_node_logging_interface(),
@@ -40,7 +40,7 @@ class MoverNodeServer : public rclcpp::Node
                 "pose_goal",
                 std::bind(&MoverNodeServer::handle_goal, this, _1, _2),
                 std::bind(&MoverNodeServer::handle_cancel, this, _1),
-                std::bind(&MinimalActionServer::handle_accepted, this, _1));
+                std::bind(&MoverNodeServer::handle_accepted, this, _1));
         }
     
     private:
@@ -50,7 +50,7 @@ class MoverNodeServer : public rclcpp::Node
             rclcpp_action::GoalUUID & uuid,
             std::shared_ptr<const PoseGoal::Goal> goal)
         {
-            RCLCPP_INFO(this->get_logger)(), "Received goal request"
+            RCLCPP_INFO(this->get_logger, "Received goal request");
         }
 
         rclcpp_action::CancelResponse handle_cancel(

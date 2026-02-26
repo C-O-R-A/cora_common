@@ -46,11 +46,10 @@ class MoverNodeServer(Node):
         # Instantiate a MoveitPy instance
         self.cora = MoveItPy(node_name="mover_node_server")
         self.get_logger().info("MoveitPy instance created!")
+        self.arm = self.cora.get_planning_component("arm")
 
         # Instantiate a RobotState instance using the current robot model
         self.robot_model = self.cora.get_robot_model()
-
-
 
     def handle_accepted_callback(self, goal_handle):
         with self._goal_queue_lock:
@@ -128,10 +127,12 @@ class MoverNodeServer(Node):
                             #     0.1                   # timeout
                             # )
                             # Set goal state
-                            self.cora.get_planning_component("arm").set_goal_state(
+                            self.arm.set_goal_state(
+                            # self.cora_planning_component.set_goal_state(
                                 pose_stamped_msg=pose_goal, 
                                 pose_link=target,
                                 )
+                            self.plan_and_execute(self.arm)
 
                     except ValueError as e:
                         self.get_logger().error(e + "Cancelling motion plan request...")
@@ -160,18 +161,8 @@ class MoverNodeServer(Node):
                     self.cora_planning_component.set_goal_state(
                             robot_state=goal_state,
                             )
-
-            self.get_logger().info("Planning Trajectory")
-            plan_result = self.cora_planning_component.plan()
-
-            # execute the plan
-            if plan_result:
-                self.get_logger().info("Executing plan")
-                robot_trajectory = plan_result.trajectory
-                self.cora.execute(robot_trajectory, controllers=["arm_controller", 'gripper_fingers_controller'])
-            else:
-                self.get_logger().error("Planning failed")
-                return PoseGoal.Result()
+                    
+                    self.plan_and_execute(self.cora_planning_component)
 
     
             goal_handle.succeed()
@@ -203,6 +194,19 @@ class MoverNodeServer(Node):
                 except IndexError:
                     self.get_logger().info("No goals left in queue")
                     self.goal_handle = None
+
+    def plan_and_execute(self, planning_component):
+            self.get_logger().info("Planning Trajectory")
+            plan_result = planning_component.plan()
+
+            # execute the plan
+            if plan_result:
+                self.get_logger().info("Executing plan")
+                robot_trajectory = plan_result.trajectory
+                self.cora.execute(robot_trajectory, controllers=["arm_controller", 'gripper_fingers_controller'])
+            else:
+                self.get_logger().error("Planning failed")
+                return PoseGoal.Result()
 
     def destroy(self):
         self.move.destroy()
