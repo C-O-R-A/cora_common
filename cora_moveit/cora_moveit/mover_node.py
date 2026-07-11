@@ -102,13 +102,14 @@ class MoverNodeServer(Node):
             else:
 
                 # Gripper Goal
-                # if gripper_goal is not None:
-                #     gripper_state = RobotState(self.robot_model)
-                #     gripper_state.joint_positions = {'Finger1': gripper_goal}
-                #     gripper_constraint = construct_joint_constraint(
-                #         robot_state=gripper_state,
-                #         joint_model_group=self.joint_model_group,
-                #     )
+                if gripper_goal is not None:
+                    gripper_state = RobotState(self.robot_model)
+                    gripper_state.joint_positions = {'Finger1': gripper_goal}
+                    gripper_constraint = construct_joint_constraint(
+                        robot_state=gripper_state,
+                        joint_model_group=self.joint_model_group,
+                    )
+
                 # Task Space Goal
                 if space == "TS":
                     self.get_logger().info("Setting Task Space goal...")
@@ -120,12 +121,6 @@ class MoverNodeServer(Node):
                             pose_goal = goal_handle.request.pose_goal.pose
                             target = goal_handle.request.pose_goal.target_frame
 
-                            # goal_state.set_from_ik(
-                            #     "arm",   # or "arm"
-                            #     pose_goal.pose,       # see next fix
-                            #     target,
-                            #     0.1                   # timeout
-                            # )
                             # Set goal state
                             self.arm.set_goal_state(
                             # self.cora_planning_component.set_goal_state(
@@ -161,7 +156,7 @@ class MoverNodeServer(Node):
                     self.cora_planning_component.set_goal_state(
                             robot_state=goal_state,
                             )
-                    
+
                     self.plan_and_execute(self.cora_planning_component)
 
     

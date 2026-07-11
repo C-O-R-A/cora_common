@@ -1,7 +1,7 @@
 # CORA Robot
 ![Status](https://img.shields.io/badge/status-in%20progress-yellow)
 
-ROS 2 Packages for the real cora robot.
+Common ROS 2 Packages for the robot and simulation.
 
 ## ROS 2 Topics
 ![Topics](assets/Topics.png)
@@ -17,8 +17,6 @@ cora_moveit
 cora_moveit_config
 cora_msgs
 cora_vision
-odrive_base
-odrive_ros2_control
 ```
 
 ## Launch files
@@ -50,8 +48,8 @@ launches all moveit related ros 2 nodes.
 
 ### vision.launch.py
 - Launch Contents:
-    * camera_node
-    * aruco_node
+    * `camera_node`
+    * `aruco_node`
 
 ## Adding a custom gripper
 1. Make sure the package structure is as follows:
