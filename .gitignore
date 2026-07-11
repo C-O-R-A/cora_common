@@ -6,3 +6,4 @@ moveit_task_constructor
 moveit_visual_tools
 moveit2
 rviz_visual_tools
+__pycache__

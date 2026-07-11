@@ -99,6 +99,16 @@ class MoverNodeServer(Node):
 
             # If no predefined pose is specified, proceed to set goal based on space
             else:
+
+                # Gripper Goal
+                if gripper_goal is not None:
+                    gripper_state = RobotState(self.robot_model)
+                    gripper_state.joint_positions = {'Finger1': gripper_goal}
+                    gripper_constraint = construct_joint_constraint(
+                        robot_state=gripper_state,
+                        joint_model_group=self.joint_model_group,
+                    )
+
                 # Task Space Goal
                 if space == "TS":
                     self.get_logger().info("Setting Task Space goal...")
