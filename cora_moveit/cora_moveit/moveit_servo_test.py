@@ -55,6 +55,7 @@ class KeyboardServo(Node):
         self.joint_vel_cmd = 1.0
         self.command_frame = PLANNING_FRAME
 
+        # TODO: derive joint names from yaml file or urdf
         self.joint_names = [
             "J1",
             "J2",

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--This does not replace URDF, and is not an extension of URDF.
+    This is a format for representing semantic information about the robot structure.
+    A URDF file must exist for this robot as well, where the joints and the links that are referenced are defined
+-->
+<robot name="cora">
+
+    <group name="gripper_fingers">
+        <joint name="Finger1"/>
+        <joint name="Finger2"/>
+    </group>
+    
+    <group_state name="open" group="gripper_fingers">
+        <joint name="Finger1" value="0.025"/>
+    </group_state>
+
+    <group_state name="closed" group="gripper_fingers">
+        <joint name="Finger1" value="0"/>
+    </group_state>
+
+</robot>

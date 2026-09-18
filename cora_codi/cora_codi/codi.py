@@ -1,3 +1,22 @@
+"""
+codi_node
+=========
+
+ROS 2 bridge node that connects the codi Python SDK to the CORA hardware
+stack. Receives motion commands from a connected codi client over ZMQ,
+translates them into ROS 2 action goals or MoveIt Servo messages, and
+publishes robot state (transforms) back to the client.
+
+Two motion pipelines are supported:
+
+- **MoveIt Servo** (real-time): commands are published directly as
+  ``TwistStamped``, ``JointJog``, or ``PoseStamped`` topics at 100 Hz.
+- **MoveIt action** (planned): commands are sent as ``PoseGoal`` action
+  goals to the ``posegoal`` action server and executed via MoveIt 2.
+
+Node name: ``codi_node``
+"""
+
 import os
 
 from ament_index_python.packages import get_package_share_directory
@@ -25,9 +44,38 @@ CONFIG = HERE.parent / "config" / "server_params.yaml"
 
 
 class CodiNode(Node):
-    # TODO: Add new predefined pose functionality using MoveitPy and srdf
-    # TODO: ADD Gripper command
+    """ROS 2 node that bridges the codi SDK to the CORA hardware stack.
+
+    Starts a :class:`~codi.CoraServer` instance, polls it for incoming
+    commands, and dispatches them to either the MoveIt Servo pipeline
+    (real-time) or the MoveIt action pipeline (planned motion).
+
+    Concurrently, TF2 transforms for the end-effector, camera, and gripper
+    frames are looked up at 100 Hz and forwarded back to connected codi
+    clients via :meth:`~codi.CoraServer.send_state`.
+
+    Publishers:
+        - ``/servo_node/delta_twist_cmds`` (:class:`TwistStamped`)
+        - ``/servo_node/delta_joint_cmds`` (:class:`JointJog`)
+        - ``/servo_node/delta_pose_cmds`` (:class:`PoseStamped`)
+
+    Action clients:
+        - ``posegoal`` (:class:`~cora_msgs.action.PoseGoal`)
+
+    Service clients:
+        - ``servo_node/switch_command_type`` (:class:`~moveit_msgs.srv.ServoCommandType`)
+        - ``/vision_node/change_state`` (:class:`~lifecycle_msgs.srv.ChangeState`)
+        - ``/camera_node/change_state`` (:class:`~lifecycle_msgs.srv.ChangeState`)
+        - ``/controller_node/change_state`` (:class:`~lifecycle_msgs.srv.ChangeState`)
+
+    Parameters:
+        config_file (str): Path to the codi server YAML config file.
+            Defaults to ``<package_root>/config/server_params.yaml``.
+    """
+
     def __init__(self):
+        """Initialise the node, start the codi server, and create all
+        publishers, subscribers, action clients, and timers."""
         super().__init__("codi_node")
 
         # Status
@@ -36,8 +84,8 @@ class CodiNode(Node):
 
         # Declare YAML config file path param
         self.declare_parameter(
-            "config_file",  # name of parameter
-            str(HERE.parent / "config" / "server_params.yaml"),  # default value
+            "config_file",
+            str(HERE.parent / "config" / "server_params.yaml"),
         )
 
         # Start CoDI server
@@ -47,10 +95,7 @@ class CodiNode(Node):
         self.last_command = self.codi_server.get_command()
 
         # Transform listener
-        self.reference_frames = ["Gripper", 
-                                 "Camera",
-                                 "endeffector",
-                                 ]
+        self.reference_frames = ["Gripper", "Camera", "endeffector"]
         self.transforms = {}
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -60,7 +105,7 @@ class CodiNode(Node):
         self.pose_timer = self.create_timer(self.timer_period, self.pose_timer_callback)
         self.pose_action_client = ActionClient(self, PoseGoal, "posegoal")
 
-        # Servo nodes for real time goals
+        # Servo publishers
         self.twist_pub = self.create_publisher(
             TwistStamped, "/servo_node/delta_twist_cmds", 10
         )
@@ -76,9 +121,7 @@ class CodiNode(Node):
         self.rt_vel = np.zeros((2, 3))
         self.current_servo_mode = None
 
-        # Realtime gripper goal cmd to ForwardCommand
-
-        # Lifecycle Node clients and Config
+        # Lifecycle node clients
         self.vision_client = self.create_client(
             ChangeState, "/vision_node/change_state"
         )
@@ -96,12 +139,15 @@ class CodiNode(Node):
         }
 
         self.apply_config()
-
-        # for c in [self.vision_client, self.camera_client, self.controller_client]:
-        #     c.wait_for_service()
         self.create_timer(0.5, self.config_callback)
 
     def activate_node(self, client):
+        """Send an ``ACTIVATE`` lifecycle transition to a managed node.
+
+        Args:
+            client: The :class:`~lifecycle_msgs.srv.ChangeState` service
+                client for the target node.
+        """
         if client.service_is_ready():
             req = ChangeState.Request()
             req.transition.id = Transition.TRANSITION_ACTIVATE
@@ -110,6 +156,12 @@ class CodiNode(Node):
             self.get_logger().warn("Lifecycle service unavailable. skipping activation")
 
     def deactivate_node(self, client):
+        """Send a ``DEACTIVATE`` lifecycle transition to a managed node.
+
+        Args:
+            client: The :class:`~lifecycle_msgs.srv.ChangeState` service
+                client for the target node.
+        """
         if client.service_is_ready():
             req = ChangeState.Request()
             req.transition.id = Transition.TRANSITION_DEACTIVATE
@@ -120,6 +172,8 @@ class CodiNode(Node):
             )
 
     def apply_config(self):
+        """Apply the current ``self.config`` state by activating or
+        deactivating the vision, camera, and controller lifecycle nodes."""
         for name, cfg in self.config.items():
             use_node = cfg["value"]
             node = cfg["node"]
@@ -131,7 +185,18 @@ class CodiNode(Node):
                 self.get_logger().info(f"Deactivating {name} node")
                 self.deactivate_node(node)
 
-    def transform_to_array(self, tf: TransformStamped):
+    def transform_to_array(self, tf: TransformStamped) -> np.ndarray:
+        """Convert a :class:`TransformStamped` to a ``(2, 4)`` NumPy array.
+
+        Row 0 contains ``[tx, ty, tz, 1.0]`` (translation + homogeneous
+        coordinate). Row 1 contains ``[qx, qy, qz, qw]`` (quaternion).
+
+        Args:
+            tf: The transform to convert.
+
+        Returns:
+            numpy.ndarray: Shape ``(2, 4)``, dtype ``float64``.
+        """
         t = tf.transform.translation
         q = tf.transform.rotation
         return np.array(
@@ -143,6 +208,13 @@ class CodiNode(Node):
         )
 
     def transforms_callback(self):
+        """Timer callback (100 Hz) that looks up TF2 transforms for all
+        reference frames and forwards the robot state to the codi server.
+
+        Looks up ``base_link`` → ``Gripper``, ``Camera``, and
+        ``endeffector`` transforms. On failure the transform is set to a
+        zero array and a throttled warning is logged.
+        """
         try:
             transform_stamped = {}
             for ref in self.reference_frames:
@@ -152,9 +224,8 @@ class CodiNode(Node):
                     )
                     self.transforms[ref] = self.transform_to_array(transform_stamped[ref])
                 else:
-                    self.transforms[ref] = np.zeros((2,4))
+                    self.transforms[ref] = np.zeros((2, 4))
 
-            # Send to Client
             self.codi_server.send_state(
                 self.status,
                 "TS",
@@ -169,6 +240,13 @@ class CodiNode(Node):
             )
 
     def pose_timer_callback(self):
+        """Timer callback (100 Hz) that polls the codi server for new
+        commands and dispatches them to the appropriate motion pipeline.
+
+        If the ``rt`` flag is set in the command, the Servo pipeline is
+        used and messages are published directly. Otherwise the command is
+        sent as a ``PoseGoal`` action goal to the MoveIt action server.
+        """
         try:
             command = self.codi_server.get_command()
             (
@@ -181,19 +259,13 @@ class CodiNode(Node):
                 predef_pose,
             ) = command
 
-            if rt:  # Moveit Servo pipeline
-                # Moveit Servo is kept separate
-                # due to its real-time requirements
-                # Ros2 actions are not real-time safe
-
+            if rt:  # MoveIt Servo pipeline
                 twist_msg = TwistStamped()
                 joint_msg = JointJog()
                 pose_msg = PoseStamped()
                 gripper_msg = JointJog()
 
                 joint_msg.joint_names = [f"J{i}" for i in range(1, 7)]
-
-                # joint_msg.displacements = [0.0] * len(joint_msg.joint_names) # not yet supported
                 joint_msg.velocities = [0.0] * len(joint_msg.joint_names)
 
                 self.publish_pose = False
@@ -215,7 +287,6 @@ class CodiNode(Node):
                                 "position": joint_msg.displacements,
                                 "velocity": joint_msg.velocities,
                             }
-
                             for i, _ in enumerate(joint_msg.joint_names, 0):
                                 if interface_type == "acceleration":
                                     interface_methods["velocity"][i] += (
@@ -225,7 +296,6 @@ class CodiNode(Node):
                                     interface_methods[interface_type][i] = (
                                         pose_command[i]
                                     )
-                            pass
 
                         case "TS":
                             interface_methods = {
@@ -236,17 +306,11 @@ class CodiNode(Node):
                                     twist_msg,
                                 ],
                             }
-
-                            if interface_type in (
-                                "position",
-                                "velocity",
-                                "acceleration",
-                            ):
+                            if interface_type in ("position", "velocity", "acceleration"):
                                 interface_methods[interface_type][0](
                                     pose_command, interface_methods[interface_type][1]
                                 )
-                            pass
-                        
+
                 except Exception as e:
                     self.get_logger().info(f"Error: {e}")
 
@@ -254,30 +318,27 @@ class CodiNode(Node):
 
                 if gripper_command is not None:
                     gripper_msg.header.stamp = timestamp
-                    gripper_msg.header.frame_id = 'Gripper'
-                    gripper_msg.joint_names = ['Finger1']
+                    gripper_msg.header.frame_id = "Gripper"
+                    gripper_msg.joint_names = ["Finger1"]
                     gripper_msg.velocities = [gripper_command]
 
                 if self.publish_pose:
                     pose_msg.header.stamp = timestamp
                     pose_msg.header.frame_id = "base_link"
                     self.pose_pub.publish(pose_msg)
-
                 elif self.publish_twist:
                     twist_msg.header.stamp = timestamp
                     twist_msg.header.frame_id = "base_link"
                     self.twist_pub.publish(twist_msg)
-
                 elif self.publish_joint:
                     joint_msg.header.stamp = timestamp
                     joint_msg.header.frame_id = "base_link"
                     self.joint_pub.publish(joint_msg)
 
                 self.last_command = None
-
                 return
 
-            else:  # MoveitPy pipeline
+            else:  # MoveIt action pipeline
                 if command != self.last_command:
                     self.get_logger().info(
                         f"New command received from client: <<<{command}>>>"
@@ -289,88 +350,89 @@ class CodiNode(Node):
                     if gripper_command is not None:
                         goal.gripper_goal = gripper_command
 
-                    # Fill predefined pose field
                     if predef_pose:
                         goal.predefined_pose = predef_pose
-
-                    # If no predefined pose is specified, fill the rest of the message
                     else:
                         goal.space = space
                         match space:
                             case "TS":
-                                # Fill TargetedPoseStamped
-                                #  NOTE (if the space is ts, pose_command was sent as [[x, y, z, 1],[rx, ry, rz, w]])
                                 goal.pose_goal.target_frame = target
-
                                 goal.pose_goal.pose.header.frame_id = "base_link"
                                 goal.pose_goal.pose.header.stamp = (
                                     self.get_clock().now().to_msg()
                                 )
-
                                 goal.pose_goal.pose.pose.position.x = pose_command[0, 0]
                                 goal.pose_goal.pose.pose.position.y = pose_command[0, 1]
                                 goal.pose_goal.pose.pose.position.z = pose_command[0, 2]
-
                                 goal.pose_goal.pose.pose.orientation.x = pose_command[1, 0]
                                 goal.pose_goal.pose.pose.orientation.y = pose_command[1, 1]
                                 goal.pose_goal.pose.pose.orientation.z = pose_command[1, 2]
                                 goal.pose_goal.pose.pose.orientation.w = pose_command[1, 3]
-                                pass
 
                             case "JS":
-                                # Fill Joint Goal
-                                # NOTE ( if the space is js, pose_command was sent as [J1, J2, J3, ...] )
                                 goal.joint_goal = pose_command.tolist()
-                                pass
 
                             case _:
                                 raise ValueError(
-                                    f'Unsupported planning space requested,\
-                                    expected "JS" or "TS" but got: {space}'
+                                    f'Unsupported planning space requested, '
+                                    f'expected "JS" or "TS" but got: {space}'
                                 )
 
                     self.get_logger().info("Waiting for action server...")
                     self.pose_action_client.wait_for_server()
 
-                    # Send Goal
                     send_goal_future = self.pose_action_client.send_goal_async(
                         goal, feedback_callback=self.pose_feedback_callback
                     )
                     send_goal_future.add_done_callback(self.pose_response_callback)
-
                     self.last_command = command
-
-                else:
-                    # skip sending a command if the command is the same
-                    pass
 
         except Exception:
             pass
 
-    def construct_twist_from_accel(self, pose_command, msg):
+    def construct_twist_from_accel(self, pose_command: np.ndarray, msg: TwistStamped):
+        """Integrate an acceleration command into a :class:`TwistStamped` message.
+
+        Accumulates linear and angular velocities by integrating the
+        acceleration values over ``self.timer_period`` and writes the
+        result into ``msg``. Switches the Servo input mode to ``TWIST``
+        if not already active.
+
+        Args:
+            pose_command: Shape ``(2, 3)`` array. Row 0 is linear
+                acceleration ``[ax, ay, az]``; row 1 is angular
+                acceleration ``[αx, αy, αz]``.
+            msg: The :class:`TwistStamped` message to populate.
+        """
         if self.current_servo_mode != "TWIST":
             self.switch_command_type("TWIST")
             self.current_servo_mode = "TWIST"
         self.publish_twist = True
         self.rt_vel[0, 0] += pose_command[0, 0] * self.timer_period
         msg.twist.linear.x = self.rt_vel[0, 0]
-
         self.rt_vel[0, 1] += pose_command[0, 1] * self.timer_period
         msg.twist.linear.y = self.rt_vel[0, 1]
-
         self.rt_vel[0, 2] += pose_command[0, 2] * self.timer_period
         msg.twist.linear.z = self.rt_vel[0, 2]
-
         self.rt_vel[1, 0] += pose_command[1, 0] * self.timer_period
         msg.twist.angular.x = self.rt_vel[1, 0]
-
         self.rt_vel[1, 1] += pose_command[1, 1] * self.timer_period
         msg.twist.angular.y = self.rt_vel[1, 1]
-
         self.rt_vel[1, 2] += pose_command[1, 2] * self.timer_period
         msg.twist.angular.z = self.rt_vel[1, 2]
 
-    def construct_twist_msg(self, pose_command, msg):
+    def construct_twist_msg(self, pose_command: np.ndarray, msg: TwistStamped):
+        """Populate a :class:`TwistStamped` from a velocity command.
+
+        Switches the Servo input mode to ``TWIST`` if not already active
+        and writes the velocity values directly into ``msg``.
+
+        Args:
+            pose_command: Shape ``(2, 3)`` array. Row 0 is linear velocity
+                ``[vx, vy, vz]``; row 1 is angular velocity
+                ``[ωx, ωy, ωz]``.
+            msg: The :class:`TwistStamped` message to populate.
+        """
         if self.current_servo_mode != "TWIST":
             self.switch_command_type("TWIST")
             self.current_servo_mode = "TWIST"
@@ -383,7 +445,17 @@ class CodiNode(Node):
         msg.twist.angular.z = pose_command[1, 2]
         self.rt_vel = pose_command
 
-    def construct_pose_msg(self, pose_command, msg):
+    def construct_pose_msg(self, pose_command: np.ndarray, msg: PoseStamped):
+        """Populate a :class:`PoseStamped` from a position command.
+
+        Switches the Servo input mode to ``POSE`` if not already active
+        and writes the pose values into ``msg``.
+
+        Args:
+            pose_command: Shape ``(2, 4)`` array. Row 0 is
+                ``[x, y, z, 1.0]``; row 1 is ``[qx, qy, qz, qw]``.
+            msg: The :class:`PoseStamped` message to populate.
+        """
         if self.current_servo_mode != "POSE":
             self.switch_command_type("POSE")
             self.current_servo_mode = "POSE"
@@ -397,33 +469,53 @@ class CodiNode(Node):
         msg.pose.orientation.w = pose_command[1, 3]
 
     def pose_feedback_callback(self, feedback_msg):
-        # feedback = feedback_msg.feedback()
+        """Action feedback callback — sets status to ``"done"`` on receipt.
+
+        Args:
+            feedback_msg: The feedback message from the ``posegoal`` action
+                server (currently unused beyond updating status).
+        """
         self.status = "done"
 
     def pose_response_callback(self, future):
-        goal_handle = future.result()
+        """Action goal response callback.
 
+        Logs whether the goal was accepted and, if so, registers
+        :meth:`pose_result_callback` on the result future.
+
+        Args:
+            future: The future returned by
+                :meth:`~rclpy.action.ActionClient.send_goal_async`.
+        """
+        goal_handle = future.result()
         if not goal_handle.accepted:
             self.get_logger().info("Goal rejected")
             return
-
         self.get_logger().info("Goal accepted")
         result_future = goal_handle.get_result_async()
         result_future.add_done_callback(self.pose_result_callback)
 
     def pose_result_callback(self, future):
+        """Action result callback.
+
+        Updates ``self.status`` from the action result and logs success
+        or failure.
+
+        Args:
+            future: The future returned by
+                :meth:`~rclpy.action.GoalHandle.get_result_async`.
+        """
         result = future.result().result
-
         self.status = result.status_result
-
         if result.success:
             self.get_logger().info("Motion completed successfully")
         else:
             self.get_logger().warn("Motion failed")
 
     def config_callback(self):
+        """Timer callback (2 Hz) that polls the codi server for config
+        changes and activates or deactivates lifecycle nodes accordingly."""
         config = self.codi_server.get_config()
-
         if config != (
             self.config["controller"]["value"],
             self.config["camera"]["value"],
@@ -435,10 +527,20 @@ class CodiNode(Node):
                 self.config["camera"]["value"],
                 self.config["vision"]["value"],
             ) = config
-
             self.apply_config()
 
     def switch_command_type(self, cmd_type: str):
+        """Switch the MoveIt Servo input command type.
+
+        Calls the ``servo_node/switch_command_type`` service to change
+        between ``JOINT_JOG``, ``TWIST``, and ``POSE`` modes.
+
+        Args:
+            cmd_type: One of ``"JOINT_JOG"``, ``"TWIST"``, or ``"POSE"``.
+
+        Raises:
+            ValueError: If ``cmd_type`` is not one of the accepted values.
+        """
         if not self.switch_input_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().warn("ServoCommandType service not available")
             return
@@ -464,6 +566,15 @@ class CodiNode(Node):
 
 
 def main(args=None):
+    """Entry point for the ``codi_node`` executable.
+
+    Initialises rclpy, spins the :class:`CodiNode`, then shuts down
+    cleanly on exit.
+
+    Args:
+        args: Optional command-line arguments passed to
+            :func:`rclpy.init`.
+    """
     rclpy.init(args=args)
     node = CodiNode()
     rclpy.spin(node)
@@ -473,9 +584,3 @@ def main(args=None):
 
 if __name__ == "__main__":
     main()
-
-# ├── moveitpy_node          (Action Client Node)
-# ├── vision_node            (LifecycleNode)
-# ├── camera_node            (LifecycleNode)
-# ├── teleop_node            (LifecycleNode)
-# └── lifecycle_manager_node (or logic inside cora_comms)

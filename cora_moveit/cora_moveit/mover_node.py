@@ -77,18 +77,16 @@ class MoverNodeServer(Node):
             interface_type = goal_handle.request.interface_type.strip().lower()
             predefined_pose = None
             gripper_goal = goal_handle.request.gripper_goal
+            arm_planning_group = "arm"
+            gripper_planning_group = "gripper_fingers"
 
-            if gripper_goal is not None:
-                planning_group = "arm_with_gripper"
-            else:
-                planning_group = "arm"
-
-            self.cora_planning_component = self.cora.get_planning_component(planning_group)
-            self.joint_model_group = self.robot_model.get_joint_model_group(planning_group)
+            self.arm_planning_component = self.cora.get_planning_component(arm_planning_group)
+            self.arm_joint_model_group = self.robot_model.get_joint_model_group(arm_planning_group)            
+            
 
             # Set start state to the current state
             goal_state = RobotState(self.robot_model)
-            self.cora_planning_component.set_start_state_to_current_state()
+            self.arm_planning_component.set_start_state_to_current_state()
 
             # Selecting a predefined pose takes precidence over any other goals
             if goal_handle.request.predefined_pose:
@@ -96,19 +94,21 @@ class MoverNodeServer(Node):
                 self.get_logger().info(
                     f"Using predefined pose: {predefined_pose}"
                 )
-                self.cora_planning_component.set_goal_state(configuration_name=predefined_pose)
+                self.arm_planning_component.set_goal_state(configuration_name=predefined_pose)
+                self.plan_and_execute(self.arm_planning_component)
 
             # If no predefined pose is specified, proceed to set goal based on space
             else:
 
                 # Gripper Goal
-                # if gripper_goal is not None:
-                #     gripper_state = RobotState(self.robot_model)
-                #     gripper_state.joint_positions = {'Finger1': gripper_goal}
-                #     gripper_constraint = construct_joint_constraint(
-                #         robot_state=gripper_state,
-                #         joint_model_group=self.joint_model_group,
-                #     )
+                if gripper_goal is not None:
+                    gripper_state = RobotState(self.robot_model)
+                    gripper_state.joint_positions = {'Finger1': gripper_goal}
+                    gripper_constraint = construct_joint_constraint(
+                        robot_state=gripper_state,
+                        joint_model_group=self.joint_model_group,
+                    )
+
                 # Task Space Goal
                 if space == "TS":
                     self.get_logger().info("Setting Task Space goal...")
@@ -120,12 +120,6 @@ class MoverNodeServer(Node):
                             pose_goal = goal_handle.request.pose_goal.pose
                             target = goal_handle.request.pose_goal.target_frame
 
-                            # goal_state.set_from_ik(
-                            #     "arm",   # or "arm"
-                            #     pose_goal.pose,       # see next fix
-                            #     target,
-                            #     0.1                   # timeout
-                            # )
                             # Set goal state
                             self.arm.set_goal_state(
                             # self.cora_planning_component.set_goal_state(
@@ -158,14 +152,31 @@ class MoverNodeServer(Node):
                     # Set joint values to the correct interface
                     joint_interface_methods[interface_type]('arm', joint_values)
 
-                    self.cora_planning_component.set_goal_state(
+                    self.arm_planning_component.set_goal_state(
                             robot_state=goal_state,
                             )
                     
-                    self.plan_and_execute(self.cora_planning_component)
+                    self.plan_and_execute(self.arm_planning_component)
 
+                self.arm_planning_component.set_start_state_to_current_state()
+
+                # Gripper Goal
+                if gripper_goal is not None:
+                    self.gripper_planning_component = self.cora.get_planning_component(gripper_planning_group)
+                    self.gripper_joint_model_group = self.robot_model.get_joint_model_group(gripper_planning_group)
+
+                    gripper_state = RobotState(self.robot_model)
+                    gripper_state.joint_positions = {'Finger1': gripper_goal}
+                    gripper_constraint = construct_joint_constraint(
+                        robot_state=gripper_state,
+                        joint_model_group=self.gripper_joint_model_group,
+                    )
+
+                    self.gripper_planning_component.set_goal_state(
+                        motion_plan_constraints=[gripper_constraint]
+                    )
+                    self.plan_and_execute(self.gripper_planning_component)
     
-            goal_handle.succeed()
 
             # Create a PoseStamped message
             pose_stamped_result = PoseStamped()
@@ -182,6 +193,7 @@ class MoverNodeServer(Node):
             result.pose_result = pose_stamped_result
             result.status_result = "Complete"
             result.success = True
+            goal_handle.succeed()
 
             return result
 

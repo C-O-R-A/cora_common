@@ -1,0 +1,15 @@
+autodoc_mock_imports = [
+    "rclpy",
+    "cora_msgs",
+    "codi",
+    "control_msgs",
+    "moveit_msgs",
+    "tf2_ros",
+    "lifecycle_msgs",
+    "ament_index_python",
+    "geometry_msgs",
+    "std_msgs",
+    "sensor_msgs",
+    "numpy",
+    "nav_msgs",
+]
