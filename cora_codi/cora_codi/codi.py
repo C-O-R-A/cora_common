@@ -202,9 +202,9 @@ class CodiNode(Node):
 
                 try:
 
-                    # ----------------------- #
-                    # Construct Robot message #
-                    # ----------------------- #
+                    # --------------------------- #
+                    # Deconstruct Command message #
+                    # --------------------------- #
                     match space:
                         case "JS":
                             if self.current_servo_mode != "JOINT_JOG":
