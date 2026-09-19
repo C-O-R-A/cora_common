@@ -46,6 +46,8 @@ class MoverNodeServer(Node):
         # Instantiate a MoveitPy instance
         self.cora = MoveItPy(node_name="mover_node_server")
         self.get_logger().info("MoveitPy instance created!")
+        # TODO: #1 planning group name is hardcoded. Read planning_groups from the
+        # generated robot_layout.yaml (C-O-R-A/configurator#2) instead of "arm".
         self.arm = self.cora.get_planning_component("arm")
 
         # Instantiate a RobotState instance using the current robot model
@@ -101,6 +103,11 @@ class MoverNodeServer(Node):
             else:
 
                 # Gripper Goal
+                # TODO: #4 this condition is ALWAYS TRUE — gripper_goal is a float action
+                # field defaulting to 0.0, so the node always selects "arm_with_gripper"
+                # and fails outright on a gripper-less robot. Check whether the group
+                # exists in robot_layout.yaml instead of `is not None`.
+                # TODO: #1 both group names below are hardcoded.
                 if gripper_goal is not None:
                     gripper_state = RobotState(self.robot_model)
                     gripper_state.joint_positions = {'Finger1': gripper_goal}
@@ -184,6 +191,9 @@ class MoverNodeServer(Node):
                 self.get_clock().now().to_msg()
             )  # current ROS time
 
+            # TODO: #1 "endeffector" does not exist on configurator-generated robots
+            # (their tip link is "<lastJoint>_joint_out"). Use ee_frame from
+            # robot_layout.yaml here and in get_pose() below.
             pose_stamped_result.header.frame_id = "endeffector"  # or the frame you used
             pose_stamped_result.pose = goal_state.get_pose(
                 "endeffector"
@@ -215,6 +225,8 @@ class MoverNodeServer(Node):
             if plan_result:
                 self.get_logger().info("Executing plan")
                 robot_trajectory = plan_result.trajectory
+                # TODO: #1 controller names hardcoded. Read the `controllers` map from
+                # robot_layout.yaml — a robot may have no gripper controller at all.
                 self.cora.execute(robot_trajectory, controllers=["arm_controller", 'gripper_fingers_controller'])
             else:
                 self.get_logger().error("Planning failed")

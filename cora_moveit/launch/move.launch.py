@@ -152,6 +152,9 @@ def generate_launch_description():
     #################
 
     # Build configs WITHOUT calling robot_description() yet
+    # TODO: #2 robot_name and package_name are hardcoded, as is the
+    # "cora.urdf.xacro" filename above. Both should come from a launch arg
+    # defaulted off robot_layout.yaml (C-O-R-A/configurator#2).
     builder = MoveItConfigsBuilder(robot_name="cora", package_name="cora_moveit_config")
     builder.trajectory_execution(file_path="config/moveit_controllers.yaml")
     builder.moveit_cpp(
@@ -293,6 +296,11 @@ def generate_launch_description():
         ],
     )
 
+    # TODO: #2 controller spawners are hand-unrolled and this one fires
+    # UNCONDITIONALLY — launching with gripper_package:=None (the documented
+    # default) tries to spawn a controller for a gripper that was never loaded.
+    # Replace both spawners with a loop over the `controllers` map in
+    # robot_layout.yaml, each conditioned on its controller being present.
     gripper_fingers_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",

@@ -1,4 +1,13 @@
 <?xml version="1.0"?>
+<!-- TODO: #3 GENERATED ARTIFACT — the configurator must emit this top-level file,
+     not just the bare kinematic chain it produces today. Missing from its output:
+     the hardware_type/gripper_package/initial_positions_file args, the ros2_control
+     include, and the Gazebo branch. See C-O-R-A/configurator#4.
+     NOTE: this file must stay GENERATED TEXT, not a generic file that loops
+     robot_layout.yaml — xacro:include with a computed filename inside a macro does
+     not register the included macros, and the joint-library macros take *origin as
+     a block param that cannot be built from YAML. Verified on Jazzy; see
+     C-O-R-A/configurator#1. -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="cora">
 
     <!-- ================= -->

@@ -1,4 +1,10 @@
 <?xml version="1.0"?>
+<!-- TODO: #3 Collapse these six copy-pasted <joint> blocks into ONE recursive
+     xacro macro driven by the generated robot_layout.yaml. The node_id values
+     (0-5) are hardcoded here but are only known to the configurator.
+     This file already loads YAML for initial_positions — extend that to the
+     joint list itself. Verified working on Jazzy; pattern and gotchas
+     (&lt; escaping, no set() in the sandbox) are in C-O-R-A/cora_common#3. -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
     <xacro:macro name="cora_ros2_control" params="name initial_positions_file hardware_type">
         <xacro:property name="initial_positions" value="${xacro.load_yaml(initial_positions_file)['initial_positions']}"/>

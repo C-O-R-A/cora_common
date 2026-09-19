@@ -38,6 +38,9 @@ smoothing_filter_plugin_name: "online_signal_smoothing::ButterworthFilterPlugin"
 is_primary_planning_scene_monitor: false
 
 ## MoveIt properties
+# TODO: #1 move_group_name / planning_frame / ee_frame_name below are
+# robot-specific. Generate this file from robot_layout.yaml rather than
+# hand-maintaining it (C-O-R-A/configurator#2).
 move_group_name:  arm  # Often 'manipulator' or 'arm'
 planning_frame: world  # The MoveIt planning frame. Often 'base_link' or 'world'
 

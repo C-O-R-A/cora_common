@@ -95,6 +95,11 @@ class CodiNode(Node):
         self.last_command = self.codi_server.get_command()
 
         # Transform listener
+        # TODO: #1 read frames from the generated robot_layout.yaml instead of
+        # hardcoding. "endeffector" only exists in the hand-written cora URDF;
+        # configurator-generated robots name their tip link
+        # "<lastJoint>_joint_out". Needs ee_frame + extra_frames from the
+        # contract (C-O-R-A/configurator#2).
         self.reference_frames = ["Gripper", "Camera", "endeffector"]
         self.transforms = {}
         self.tf_buffer = Buffer()
@@ -208,8 +213,8 @@ class CodiNode(Node):
         )
 
     def transforms_callback(self):
-        """Timer callback (100 Hz) that looks up TF2 transforms for all
-        reference frames and forwards the robot state to the codi server.
+        """
+        Timer callback (100 Hz) that looks up TF2 transforms for all reference frames and forwards the robot state to the codi server.
 
         Looks up ``base_link`` → ``Gripper``, ``Camera``, and
         ``endeffector`` transforms. On failure the transform is set to a
@@ -222,10 +227,14 @@ class CodiNode(Node):
                     transform_stamped[ref] = self.tf_buffer.lookup_transform(
                         "base_link", ref, rclpy.time.Time()
                     )
-                    self.transforms[ref] = self.transform_to_array(transform_stamped[ref])
+                    self.transforms[ref] = self.transform_to_array(
+                        transform_stamped[ref]
+                    )
                 else:
                     self.transforms[ref] = np.zeros((2, 4))
 
+            # TODO: #1 index by self.ee_frame (from robot_layout.yaml) rather
+            # than the literal "endeffector" — KeyError on any generated robot.
             self.codi_server.send_state(
                 self.status,
                 "TS",
@@ -265,6 +274,10 @@ class CodiNode(Node):
                 pose_msg = PoseStamped()
                 gripper_msg = JointJog()
 
+                # TODO: #1 THE sharpest hardcode in the repo — range(1, 7) pins
+                # both the DOF count and the "J<n>" naming convention in one
+                # expression. Replace with self.arm_joints loaded from the
+                # generated robot_layout.yaml (C-O-R-A/configurator#2).
                 joint_msg.joint_names = [f"J{i}" for i in range(1, 7)]
                 joint_msg.velocities = [0.0] * len(joint_msg.joint_names)
 
@@ -293,9 +306,9 @@ class CodiNode(Node):
                                         pose_command[i] * self.timer_period
                                     )
                                 else:
-                                    interface_methods[interface_type][i] = (
-                                        pose_command[i]
-                                    )
+                                    interface_methods[interface_type][i] = pose_command[
+                                        i
+                                    ]
 
                         case "TS":
                             interface_methods = {
@@ -306,7 +319,11 @@ class CodiNode(Node):
                                     twist_msg,
                                 ],
                             }
-                            if interface_type in ("position", "velocity", "acceleration"):
+                            if interface_type in (
+                                "position",
+                                "velocity",
+                                "acceleration",
+                            ):
                                 interface_methods[interface_type][0](
                                     pose_command, interface_methods[interface_type][1]
                                 )
@@ -319,6 +336,8 @@ class CodiNode(Node):
                 if gripper_command is not None:
                     gripper_msg.header.stamp = timestamp
                     gripper_msg.header.frame_id = "Gripper"
+                    # TODO: #1 use self.gripper_joints from robot_layout.yaml;
+                    # a robot may have no gripper, or one not named "Finger1".
                     gripper_msg.joint_names = ["Finger1"]
                     gripper_msg.velocities = [gripper_command]
 
@@ -364,17 +383,25 @@ class CodiNode(Node):
                                 goal.pose_goal.pose.pose.position.x = pose_command[0, 0]
                                 goal.pose_goal.pose.pose.position.y = pose_command[0, 1]
                                 goal.pose_goal.pose.pose.position.z = pose_command[0, 2]
-                                goal.pose_goal.pose.pose.orientation.x = pose_command[1, 0]
-                                goal.pose_goal.pose.pose.orientation.y = pose_command[1, 1]
-                                goal.pose_goal.pose.pose.orientation.z = pose_command[1, 2]
-                                goal.pose_goal.pose.pose.orientation.w = pose_command[1, 3]
+                                goal.pose_goal.pose.pose.orientation.x = pose_command[
+                                    1, 0
+                                ]
+                                goal.pose_goal.pose.pose.orientation.y = pose_command[
+                                    1, 1
+                                ]
+                                goal.pose_goal.pose.pose.orientation.z = pose_command[
+                                    1, 2
+                                ]
+                                goal.pose_goal.pose.pose.orientation.w = pose_command[
+                                    1, 3
+                                ]
 
                             case "JS":
                                 goal.joint_goal = pose_command.tolist()
 
                             case _:
                                 raise ValueError(
-                                    f'Unsupported planning space requested, '
+                                    f"Unsupported planning space requested, "
                                     f'expected "JS" or "TS" but got: {space}'
                                 )
 

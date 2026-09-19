@@ -47,6 +47,10 @@ int main(int argc, char *argv[])
                 { executor.spin(); })
         .detach();
 
+    // TODO: #1 declare these as node parameters fed from robot_layout.yaml
+    // instead of compile-time constants (C-O-R-A/configurator#2).
+    // TODO: #4 GRIPPER_GROUP "gripper_fingers" does not exist in cora.srdf,
+    // which only defines "arm" and "arm_with_gripper".
     static const std::string PLANNING_GROUP = "arm";
     static const std::string GRIPPER_GROUP = "gripper_fingers";
     moveit::planning_interface::MoveGroupInterface move_group(move_group_node, PLANNING_GROUP);
@@ -185,6 +189,8 @@ int main(int argc, char *argv[])
     // Let's specify a path constraint and a pose goal for our group.
     // First define the path constraint.
     moveit_msgs::msg::OrientationConstraint ocm;
+    // TODO: #1 use ee_frame from robot_layout.yaml — "endeffector" is specific
+    // to the hand-written cora URDF.
     ocm.link_name = "endeffector";
     ocm.header.frame_id = "base_link";
     ocm.orientation.w = 1.0;

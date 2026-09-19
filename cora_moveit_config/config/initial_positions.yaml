@@ -1,3 +1,8 @@
+# TODO: #3 GENERATED ARTIFACT — this file is hand-written today but must be
+# emitted by the configurator from robot_layout.yaml. NOT generated at all today, yet three xacros call xacro.load_yaml on it —
+# an exported package cannot boot without it.
+# Contract: C-O-R-A/configurator#2. Generator: C-O-R-A/configurator#3.
+
 # Default initial positions for cora's ros2_control fake system
 
 initial_positions:

@@ -148,7 +148,9 @@ def main():
     # set constraints message
     from moveit.core.kinematic_constraints import construct_joint_constraint
 
-    # TODO: #1 derive joint names from yaml file or urdf
+    # TODO: #1 derive joint names from the generated robot_layout.yaml
+    # (arm_joints + gripper_joints). Also hardcoded in this file:
+    # "arm" group (L69, L164), "Finger1" (L104), "baselink" frame (L129).
     joint_values = {
         "J1": -1.0,
         "J2": 0.7,

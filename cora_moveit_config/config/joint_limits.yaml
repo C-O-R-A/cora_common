@@ -1,3 +1,7 @@
+# TODO: #3 GENERATED ARTIFACT — this file is hand-written today but must be
+# emitted by the configurator from robot_layout.yaml. Every J1..J6/Finger entry below is robot-specific.
+# Contract: C-O-R-A/configurator#2. Generator: C-O-R-A/configurator#7.
+
 # joint_limits.yaml allows the dynamics properties specified in the URDF to be overwritten or augmented as needed
 
 # For beginners, we downscale velocity and acceleration limits.

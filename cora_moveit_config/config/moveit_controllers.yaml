@@ -1,3 +1,8 @@
+# TODO: #3 GENERATED ARTIFACT — this file is hand-written today but must be
+# emitted by the configurator from robot_layout.yaml. The generator's version mis-nests `arm_controller` at top level instead of
+# under `moveit_simple_controller_manager` — compare the (correct) nesting here.
+# Contract: C-O-R-A/configurator#2. Generator: C-O-R-A/configurator#7.
+
 # MoveIt uses this configuration for controller management
 
 moveit_controller_manager: moveit_simple_controller_manager/MoveItSimpleControllerManager

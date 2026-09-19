@@ -37,6 +37,8 @@ KEYCODE_E = "e"
 # Frames
 PLANNING_FRAME = "base_link"
 EE_FRAME = "endeffector"  # replace with your EE link
+# TODO: #1 read PLANNING_FRAME/EE_FRAME from robot_layout.yaml
+# (base_frame / ee_frame) rather than module-level constants.
 
 
 class KeyboardServo(Node):
@@ -55,7 +57,8 @@ class KeyboardServo(Node):
         self.joint_vel_cmd = 1.0
         self.command_frame = PLANNING_FRAME
 
-        # TODO: derive joint names from yaml file or urdf
+        # TODO: #1 derive joint names from the generated robot_layout.yaml
+        # (arm_joints) — see C-O-R-A/configurator#2 for the contract.
         self.joint_names = [
             "J1",
             "J2",

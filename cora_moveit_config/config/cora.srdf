@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- TODO: #3 GENERATED ARTIFACT — must be emitted by the configurator.
+     The generator currently produces INVALID SRDF: tip_link is set to a joint
+     name, group_state entries have no value attribute, and no disable_collisions
+     pairs are emitted at all (12 are needed here). See C-O-R-A/configurator#6. -->
 <!--This does not replace URDF, and is not an extension of URDF.
     This is a format for representing semantic information about the robot structure.
     A URDF file must exist for this robot as well, where the joints and the links that are referenced are defined

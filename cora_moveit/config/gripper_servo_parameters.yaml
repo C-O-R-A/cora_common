@@ -38,6 +38,10 @@ smoothing_filter_plugin_name: "online_signal_smoothing::ButterworthFilterPlugin"
 is_primary_planning_scene_monitor: false
 
 ## MoveIt properties
+# TODO: #4 "gripper_fingers" is NOT a group in cora.srdf (only "arm" and
+# "arm_with_gripper" exist). Latent because the gripper servo node is
+# commented out in move.launch.py — will fail the moment it is enabled.
+# TODO: #1 generate this file from robot_layout.yaml.
 move_group_name:  gripper_fingers  # Often 'manipulator' or 'arm'
 planning_frame: Gripper  # The MoveIt planning frame. Often 'base_link' or 'world'
 

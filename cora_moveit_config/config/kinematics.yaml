@@ -1,3 +1,7 @@
+# TODO: #3 GENERATED ARTIFACT — this file is hand-written today but must be
+# emitted by the configurator from robot_layout.yaml. One entry per planning group; the generator only emits `arm`.
+# Contract: C-O-R-A/configurator#2. Generator: C-O-R-A/configurator#7.
+
 arm:
   kinematics_solver: kdl_kinematics_plugin/KDLKinematicsPlugin
   kinematics_solver_search_resolution: 0.0050000000000000001
