@@ -29,15 +29,20 @@ from lifecycle_msgs.msg import Transition
 from control_msgs.msg import JointJog
 from moveit_msgs.srv import ServoCommandType
 
-from tf2_ros import TransformListener, Buffer
-from geometry_msgs.msg import Pose, PoseStamped, TransformStamped, TwistStamped
+from geometry_msgs.msg import Pose, PoseStamped, TwistStamped
+from tf2_msgs.msg import TFMessage
 from cora_msgs.action import PoseGoal
 from pathlib import Path
 from codi import CoraServer
+from codi.codi_enums import MoveStatus, GoalSpace, InterfaceType
+from codi.messages import ConfigMessage, CommandMessage
+
+from sensor_msgs.msg import JointState
 
 import numpy as np
 
 import rclpy
+from rosidl_runtime_py.convert import message_to_ordereddict
 
 HERE = Path(__file__).resolve().parent
 CONFIG = HERE.parent / "config" / "server_params.yaml"
@@ -64,7 +69,7 @@ class CodiNode(Node):
 
     Service clients:
         - ``servo_node/switch_command_type`` (:class:`~moveit_msgs.srv.ServoCommandType`)
-        - ``/vision_node/change_state`` (:class:`~lifecycle_msgs.srv.ChangeState`)
+
         - ``/camera_node/change_state`` (:class:`~lifecycle_msgs.srv.ChangeState`)
         - ``/controller_node/change_state`` (:class:`~lifecycle_msgs.srv.ChangeState`)
 
@@ -79,7 +84,7 @@ class CodiNode(Node):
         super().__init__("codi_node")
 
         # Status
-        self.status = "idle"
+        self.status = MoveStatus.IDLE
         self.timer_period = 0.01
 
         # Declare YAML config file path param
@@ -101,10 +106,14 @@ class CodiNode(Node):
         # "<lastJoint>_joint_out". Needs ee_frame + extra_frames from the
         # contract (C-O-R-A/configurator#2).
         self.reference_frames = ["Gripper", "Camera", "endeffector"]
-        self.transforms = {}
-        self.tf_buffer = Buffer()
-        self.tf_listener = TransformListener(self.tf_buffer, self)
-        self.timer = self.create_timer(self.timer_period, self.transforms_callback)
+        self.transforms = None
+        self.create_subscription(TFMessage, "/tf", self.tf_callback, 10)
+
+        # JointState subscriber
+        self.joint_states = None
+        self.create_subscription(
+            JointState, "/joint_states", self.joint_state_callback, 10
+        )
 
         # Pose goal action for preplanned goal
         self.pose_timer = self.create_timer(self.timer_period, self.pose_timer_callback)
@@ -127,9 +136,6 @@ class CodiNode(Node):
         self.current_servo_mode = None
 
         # Lifecycle node clients
-        self.vision_client = self.create_client(
-            ChangeState, "/vision_node/change_state"
-        )
         self.camera_client = self.create_client(
             ChangeState, "/camera_node/change_state"
         )
@@ -138,7 +144,6 @@ class CodiNode(Node):
         )
 
         self.config = {
-            "vision": {"value": False, "node": self.vision_client},
             "camera": {"value": False, "node": self.camera_client},
             "controller": {"value": False, "node": self.controller_client},
         }
@@ -178,7 +183,7 @@ class CodiNode(Node):
 
     def apply_config(self):
         """Apply the current ``self.config`` state by activating or
-        deactivating the vision, camera, and controller lifecycle nodes."""
+        deactivating the camera and controller lifecycle nodes."""
         for name, cfg in self.config.items():
             use_node = cfg["value"]
             node = cfg["node"]
@@ -190,29 +195,35 @@ class CodiNode(Node):
                 self.get_logger().info(f"Deactivating {name} node")
                 self.deactivate_node(node)
 
-    def transform_to_array(self, tf: TransformStamped) -> np.ndarray:
-        """Convert a :class:`TransformStamped` to a ``(2, 4)`` NumPy array.
+    def joint_state_callback(self, msg: JointState):
+        """Callback for the ``/joint_states`` topic.
 
-        Row 0 contains ``[tx, ty, tz, 1.0]`` (translation + homogeneous
-        coordinate). Row 1 contains ``[qx, qy, qz, qw]`` (quaternion).
+        Stores the latest joint state as a plain dict on ``self.joint_states``
+        so downstream code can serialize or map it into the CoDI format.
 
         Args:
-            tf: The transform to convert.
-
-        Returns:
-            numpy.ndarray: Shape ``(2, 4)``, dtype ``float64``.
+            msg: The :class:`JointState` message received.
         """
-        t = tf.transform.translation
-        q = tf.transform.rotation
-        return np.array(
-            [
-                [t.x, t.y, t.z, 1.0],
-                [q.x, q.y, q.z, q.w],
-            ],
-            dtype=float,
-        )
+        try:
+            self.joint_states = dict(message_to_ordereddict(msg))
+        except Exception as e:
+            self.get_logger().warn(f"Failed to convert JointState: {e}")
+            self.joint_states = None
 
-    def transforms_callback(self):
+    def tf_callback(self, msg: TFMessage):
+        """Callback for the ``/tf`` topic. Stores the latest transform
+        messages in ``self.transforms`` for later use.
+
+        Args:
+            msg: The :class:`tf2_msgs.msg.TFMessage` message received.
+        """
+        try:
+            self.transforms = [dict(message_to_ordereddict(t)) for t in msg.transforms]
+        except Exception as e:
+            self.get_logger().warn(f"Failed to convert TF message: {e}")
+            self.transforms = None
+
+    def feedback_callback(self):
         """
         Timer callback (100 Hz) that looks up TF2 transforms for all reference frames and forwards the robot state to the codi server.
 
@@ -221,26 +232,13 @@ class CodiNode(Node):
         zero array and a throttled warning is logged.
         """
         try:
-            transform_stamped = {}
-            for ref in self.reference_frames:
-                if self.tf_buffer.can_transform("base_link", ref, rclpy.time.Time()):
-                    transform_stamped[ref] = self.tf_buffer.lookup_transform(
-                        "base_link", ref, rclpy.time.Time()
-                    )
-                    self.transforms[ref] = self.transform_to_array(
-                        transform_stamped[ref]
-                    )
-                else:
-                    self.transforms[ref] = np.zeros((2, 4))
+            if not (self.joint_states and self.transforms):
+                return
 
-            # TODO: #1 index by self.ee_frame (from robot_layout.yaml) rather
-            # than the literal "endeffector" — KeyError on any generated robot.
             self.codi_server.send_state(
+                self.transforms,
+                self.joint_states,
                 self.status,
-                "TS",
-                self.transforms["endeffector"],
-                self.transforms["Camera"],
-                self.transforms["Gripper"],
             )
 
         except Exception as e:
@@ -258,17 +256,10 @@ class CodiNode(Node):
         """
         try:
             command = self.codi_server.get_command()
-            (
-                rt,
-                space,
-                interface_type,
-                target,
-                gripper_command,
-                pose_command,
-                predef_pose,
-            ) = command
+            if command is None:
+                return
 
-            if rt:  # MoveIt Servo pipeline
+            if command.rt:  # MoveIt Servo pipeline
                 twist_msg = TwistStamped()
                 joint_msg = JointJog()
                 pose_msg = PoseStamped()
@@ -290,56 +281,55 @@ class CodiNode(Node):
                     # --------------------------- #
                     # Deconstruct Command message #
                     # --------------------------- #
-                    match space:
-                        case "JS":
-                            if self.current_servo_mode != "JOINT_JOG":
-                                self.switch_command_type("JOINT_JOG")
-                                self.current_servo_mode = "JOINT_JOG"
-                            self.publish_joint = True
-                            interface_methods = {
-                                "position": joint_msg.displacements,
-                                "velocity": joint_msg.velocities,
-                            }
-                            for i, _ in enumerate(joint_msg.joint_names, 0):
-                                if interface_type == "acceleration":
-                                    interface_methods["velocity"][i] += (
-                                        pose_command[i] * self.timer_period
-                                    )
-                                else:
-                                    interface_methods[interface_type][i] = pose_command[
-                                        i
-                                    ]
+                    if command.joint_command is not None:
+                        if self.current_servo_mode != "JOINT_JOG":
+                            self.switch_command_type("JOINT_JOG")
+                            self.current_servo_mode = "JOINT_JOG"
+                        self.publish_joint = True
+                        interface_methods = {
+                            InterfaceType.POSITION: joint_msg.displacements,
+                            InterfaceType.VELOCITY: joint_msg.velocities,
+                        }
 
-                        case "TS":
-                            interface_methods = {
-                                "position": [self.construct_pose_msg, pose_msg],
-                                "velocity": [self.construct_twist_msg, twist_msg],
-                                "acceleration": [
-                                    self.construct_twist_from_accel,
-                                    twist_msg,
-                                ],
-                            }
-                            if interface_type in (
-                                "position",
-                                "velocity",
-                                "acceleration",
-                            ):
-                                interface_methods[interface_type][0](
-                                    pose_command, interface_methods[interface_type][1]
+                        for i, _ in enumerate(joint_msg.joint_names, 0):
+                            if command.interface_type == InterfaceType.EFFORT:
+                                joint_msg.velocities[i] += (
+                                    pose_command[i] * self.timer_period
                                 )
+                            else:
+                                interface_methods[command.interface_type][i] = (
+                                    command.joint_command[i]
+                                )
+                    elif command.pose_command is not None:
+                        interface_methods = {
+                            InterfaceType.POSITION: [self.construct_pose_msg, pose_msg],
+                            InterfaceType.VELOCITY: [
+                                self.construct_twist_msg,
+                                twist_msg,
+                            ],
+                            InterfaceType.EFFORT: [
+                                self.construct_twist_from_accel,
+                                twist_msg,
+                            ],
+                        }
+                        if command.interface_type in interface_methods:
+                            interface_methods[command.interface_type][0](
+                                command.pose_command,
+                                interface_methods[command.interface_type][1],
+                            )
 
                 except Exception as e:
                     self.get_logger().info(f"Error: {e}")
 
                 timestamp = self.get_clock().now().to_msg()
 
-                if gripper_command is not None:
+                if command.gripper_command is not None:
                     gripper_msg.header.stamp = timestamp
                     gripper_msg.header.frame_id = "Gripper"
                     # TODO: #1 use self.gripper_joints from robot_layout.yaml;
                     # a robot may have no gripper, or one not named "Finger1".
                     gripper_msg.joint_names = ["Finger1"]
-                    gripper_msg.velocities = [gripper_command]
+                    gripper_msg.velocities = [command.gripper_command]
 
                 if self.publish_pose:
                     pose_msg.header.stamp = timestamp
@@ -364,46 +354,33 @@ class CodiNode(Node):
                     )
 
                     goal = PoseGoal.Goal()
-                    goal.interface_type = interface_type
+                    goal.interface_type = command.interface_type
 
-                    if gripper_command is not None:
-                        goal.gripper_goal = gripper_command
+                    if command.gripper_command is not None:
+                        goal.gripper_goal = command.gripper_command
 
-                    if predef_pose:
-                        goal.predefined_pose = predef_pose
+                    if command.predef_pose:
+                        goal.predefined_pose = command.predef_pose
                     else:
-                        goal.space = space
-                        match space:
-                            case "TS":
-                                goal.pose_goal.target_frame = target
-                                goal.pose_goal.pose.header.frame_id = "base_link"
-                                goal.pose_goal.pose.header.stamp = (
-                                    self.get_clock().now().to_msg()
-                                )
-                                goal.pose_goal.pose.pose.position.x = pose_command[0, 0]
-                                goal.pose_goal.pose.pose.position.y = pose_command[0, 1]
-                                goal.pose_goal.pose.pose.position.z = pose_command[0, 2]
-                                goal.pose_goal.pose.pose.orientation.x = pose_command[
-                                    1, 0
-                                ]
-                                goal.pose_goal.pose.pose.orientation.y = pose_command[
-                                    1, 1
-                                ]
-                                goal.pose_goal.pose.pose.orientation.z = pose_command[
-                                    1, 2
-                                ]
-                                goal.pose_goal.pose.pose.orientation.w = pose_command[
-                                    1, 3
-                                ]
+                        if command.pose_command is not None:
+                            goal.space = PoseGoal.Goal().TS
+                            goal.pose_goal.target_frame = command.target
+                            goal.pose_goal.pose.header.frame_id = "base_link"
+                            goal.pose_goal.pose.header.stamp = (
+                                self.get_clock().now().to_msg()
+                            )
+                            pose_array = np.array(command.pose_command)
+                            goal.pose_goal.pose.pose.position.x = pose_array[0, 0]
+                            goal.pose_goal.pose.pose.position.y = pose_array[0, 1]
+                            goal.pose_goal.pose.pose.position.z = pose_array[0, 2]
+                            goal.pose_goal.pose.pose.orientation.x = pose_array[1, 0]
+                            goal.pose_goal.pose.pose.orientation.y = pose_array[1, 1]
+                            goal.pose_goal.pose.pose.orientation.z = pose_array[1, 2]
+                            goal.pose_goal.pose.pose.orientation.w = pose_array[1, 3]
 
-                            case "JS":
-                                goal.joint_goal = pose_command.tolist()
-
-                            case _:
-                                raise ValueError(
-                                    f"Unsupported planning space requested, "
-                                    f'expected "JS" or "TS" but got: {space}'
-                                )
+                        elif command.joint_command is not None:
+                            goal.space = PoseGoal.Goal().JS
+                            goal.joint_goal = command.joint_command
 
                     self.get_logger().info("Waiting for action server...")
                     self.pose_action_client.wait_for_server()
@@ -546,13 +523,11 @@ class CodiNode(Node):
         if config != (
             self.config["controller"]["value"],
             self.config["camera"]["value"],
-            self.config["vision"]["value"],
         ):
             self.get_logger().info(f"Configuration changed to{config}")
             (
                 self.config["controller"]["value"],
                 self.config["camera"]["value"],
-                self.config["vision"]["value"],
             ) = config
             self.apply_config()
 
@@ -596,7 +571,7 @@ def main(args=None):
     """Entry point for the ``codi_node`` executable.
 
     Initialises rclpy, spins the :class:`CodiNode`, then shuts down
-    cleanly on exit.
+    cleanly on exit. gripper_command
 
     Args:
         args: Optional command-line arguments passed to

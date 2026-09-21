@@ -25,6 +25,9 @@
 #                      |__ w (float64)
 
 # Goal
+string TS=TaskSpace
+string JS=JointSpace
+
 cora_msgs/TargetedPoseStamped pose_goal     
 float64[] joint_goal                    # [J1, J2, J3, J4, J5, J6]
 float64 gripper_goal                    # gripper goal pose
