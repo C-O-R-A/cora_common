@@ -21,6 +21,7 @@
               <xacro:if value="${hardware_type == 'Real'}">
                 <plugin>odrive_ros2_control_plugin/odriveHardwareInterface</plugin>
                 <param name="can">can0</param>
+                <param name="initial_positions_file">${initial_positions_file}</param>
               </xacro:if>
 
               <!-- Gazebo hardware components -->
@@ -38,6 +39,9 @@
                 </state_interface>
                 <state_interface name="velocity"/>
                 <param name="node_id">0</param>
+                <param name="pos_gain">60.0</param>
+                <param name="vel_gain">0.1</param>
+                <param name="vel_integrator_gain">0</param>  
             </joint>
 
             <joint name="J2">
@@ -48,6 +52,9 @@
                 </state_interface>
                 <state_interface name="velocity"/>
                 <param name="node_id">1</param>
+                <param name="pos_gain">60.0</param>
+                <param name="vel_gain">0.1</param>
+                <param name="vel_integrator_gain">0</param>  
             </joint>
 
             <joint name="J3">
@@ -58,6 +65,9 @@
                 </state_interface>
                 <state_interface name="velocity"/>
                 <param name="node_id">2</param>
+                <param name="pos_gain">60.0</param>
+                <param name="vel_gain">0.1</param>
+                <param name="vel_integrator_gain">0</param>  
             </joint>
 
             <joint name="J4">
@@ -68,6 +78,9 @@
                 </state_interface>
                 <state_interface name="velocity"/>
                 <param name="node_id">3</param>
+                <param name="pos_gain">120.0</param>
+                <param name="vel_gain">0.012</param>
+                <param name="vel_integrator_gain">0</param>  
             </joint>
 
             <joint name="J5">
@@ -78,6 +91,10 @@
                 </state_interface>
                 <state_interface name="velocity"/>
                 <param name="node_id">4</param>
+                <param name="node_id">3</param>
+                <param name="pos_gain">120.0</param>
+                <param name="vel_gain">0.012</param>
+                <param name="vel_integrator_gain">0</param>  
             </joint>
 
             <joint name="J6">
@@ -88,6 +105,10 @@
                 </state_interface>
                 <state_interface name="velocity"/>
                 <param name="node_id">5</param>
+                <param name="node_id">3</param>
+                <param name="pos_gain">120.0</param>
+                <param name="vel_gain">0.012</param>
+                <param name="vel_integrator_gain">0</param>  
             </joint>
 
         </ros2_control>
