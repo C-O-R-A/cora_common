@@ -1,0 +1,19 @@
+name: Lint and check ROS2 Packages
+on:
+  # Run this action whenever a pull request is made
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build_and_test_ros2:
+    runs-on: ubuntu-24.04
+    container:
+      image: rostooling/setup-ros-docker:ubuntu-noble-latest
+    steps:
+      - name: build_and_run_tests
+        uses: ros-tooling/action-ros-ci@v0.4
+        with:
+          target-ros2-distro: jazzy
+        if: always()
